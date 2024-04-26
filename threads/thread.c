@@ -570,10 +570,10 @@ do_iret (struct intr_frame *tf) {
 			: : "g" ((uint64_t) tf) : "memory");
 }
 
-/* 새 프로세스를 스케줄링합니다. 진입 시, 인터럽트는 꺼져 있어야 합니다.
- * 이 함수는 현재 스레드의 상태를 status로 변경한 다음,
- * 다른 스레드를 찾아 전환합니다.
- * schedule()에서 printf()를 호출하는 것은 안전하지 않습니다. */
+/* 새 스레드의 페이지 테이블을 활성화하고 이전 스레드를 종료 상태로 전환합니다.
+   이 함수가 호출되었을 때, 이미 새 스레드는 실행 중이며 인터럽트는 비활성화 상태입니다.
+   스레드 전환이 완전히 끝날 때까지 printf() 호출은 안전하지 않습니다.
+   이는 실제로 printf() 호출은 함수의 맨 끝에서만 수행되어야 함을 의미합니다. */
 /* Switching the thread by activating the new thread's page
    tables, and, if the previous thread is dying, destroying it.
 
@@ -586,20 +586,25 @@ do_iret (struct intr_frame *tf) {
    added at the end of the function. */
 static void
 thread_launch (struct thread *th) {
-	uint64_t tf_cur = (uint64_t) &running_thread ()->tf;
-	uint64_t tf = (uint64_t) &th->tf;
-	ASSERT (intr_get_level () == INTR_OFF);
+	uint64_t tf_cur = (uint64_t) &running_thread ()->tf;	// 현재 실행 중인 스레드의 프레임 주소를 가져옵니다.
+	uint64_t tf = (uint64_t) &th->tf;	// 전환될 새 스레드의 프레임 주소를 가져옵니다.
+	ASSERT (intr_get_level () == INTR_OFF);	// 인터럽트가 비활성화되었는지 확인합니다.
 
+	/* 주 스위칭 로직입니다.
+	 * 먼저 전체 실행 컨텍스트를 intr_frame으로 복원하고 do_iret를 호출하여 다음 스레드로 전환합니다.
+	 * 여기서 스위칭이 완료될 때까지 스택을 사용해서는 안 됩니다. */
 	/* The main switching logic.
 	 * We first restore the whole execution context into the intr_frame
 	 * and then switching to the next thread by calling do_iret.
 	 * Note that, we SHOULD NOT use any stack from here
 	 * until switching is done. */
 	__asm __volatile (
+			/* 사용될 레지스터를 저장합니다. */
 			/* Store registers that will be used. */
 			"push %%rax\n"
 			"push %%rbx\n"
 			"push %%rcx\n"
+			/* 입력을 한 번만 가져옵니다. */
 			/* Fetch input once */
 			"movq %0, %%rax\n"
 			"movq %1, %%rcx\n"
@@ -664,26 +669,37 @@ do_schedule(int status) {
 	schedule ();
 }
 
+/* 스케줄러의 핵심 함수로, 현재 실행 중인 스레드에서 다음 실행할 스레드로 전환합니다.
+   이 함수는 인터럽트가 비활성화된 상태에서 호출되어야 합니다.
+   이 함수의 호출은 현재 실행 중인 스레드의 상태가 '실행 중'이 아니라고 가정합니다.
+   또한, 다음에 실행될 스레드가 유효한 스레드 객체인지 확인합니다. */
 static void
 schedule (void) {
-	struct thread *curr = running_thread ();
-	struct thread *next = next_thread_to_run ();
+	struct thread *curr = running_thread ();			// 현재 실행 중인 스레드를 가져옵니다.
+	struct thread *next = next_thread_to_run ();	// 다음에 실행할 스레드를 결정합니다.
 
-	ASSERT (intr_get_level () == INTR_OFF);
-	ASSERT (curr->status != THREAD_RUNNING);
-	ASSERT (is_thread (next));
+	ASSERT (intr_get_level () == INTR_OFF);				// 인터럽트가 비활성화되었는지 확인합니다.
+	ASSERT (curr->status != THREAD_RUNNING);			// 현재 스레드의 상태가 실행 중이 아닌지 확인합니다.
+	ASSERT (is_thread (next));										// 다음 스레드가 유효한 스레드인지 확인합니다.
+
+	/* 다음 스레드의 상태를 '실행 중'으로 설정합니다. */
 	/* Mark us as running. */
 	next->status = THREAD_RUNNING;
 
+	/* 새로운 시간 할당량을 시작합니다. */
 	/* Start new time slice. */
 	thread_ticks = 0;
 
 #ifdef USERPROG
+	/* 새로운 주소 공간을 활성화합니다. */
 	/* Activate the new address space. */
 	process_activate (next);
 #endif
 
 	if (curr != next) {
+		/* 현재 스레드가 종료 상태인 경우, 그 스레드를 파괴합니다.
+		   이 작업은 thread_exit() 함수가 자기 자신을 종료하지 않도록 늦게 수행됩니다.
+		   페이지 해제 요청은 여기서 큐에 저장되며, 실제 파괴 로직은 schedule()의 시작 부분에서 호출됩니다. */
 		/* If the thread we switched from is dying, destroy its struct
 		   thread. This must happen late so that thread_exit() doesn't
 		   pull out the rug under itself.
