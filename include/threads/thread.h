@@ -39,11 +39,11 @@ typedef int tid_t;
  * 아래 방향으로 성장합니다. 다음은 이를 도식화한 것입니다:
  *
  *      4 kB +---------------------------------+
- *           |          커널 스택              |
+ *           |          커널 스택               |
  *           |                |                |
  *           |                |                |
  *           |                V                |
- *           |         아래 방향으로 성장      |
+ *           |         아래 방향으로 성장       |
  *           |                                 |
  *           +---------------------------------+
  *           |              magic              |
@@ -121,6 +121,12 @@ typedef int tid_t;
  * the `magic' member of the running thread's `struct thread' is
  * set to THREAD_MAGIC.  Stack overflow will normally change this
  * value, triggering the assertion. */
+
+/* 이 두 가지 사용 방법이 가능한 이유는, 각 상태가 서로 배타적이기 때문입니다.
+	 준비 상태(ready state)에 있는 스레드만 실행 대기열에 있을 수 있고, 
+	 차단된 상태(blocked state)에 있는 스레드만 세마포어 대기 목록에 있을 수 있습니다. 
+	 이를 통해 elem 멤버는 효율적으로 두 가지 목적으로 사용될 수 있으며, 
+	 각 상황에 따라 적절하게 스레드를 관리하는 데 필요한 구조적 지원을 제공합니다.*/
 /* The `elem' member has a dual purpose.  It can be an element in
  * the run queue (thread.c), or it can be an element in a
  * semaphore wait list (synch.c).  It can be used these two ways
