@@ -82,8 +82,8 @@ static struct desc_ptr idt_desc = {
 #define make_gate(g, function, d, t) \
 { \
 	ASSERT ((function) != NULL); \
-	ASSERT ((d) >= 0 && (d) <= 3); \			 /* DPL이 유효 범위 내인지 확인 */ \
-	ASSERT ((t) >= 0 && (t) <= 15); \				/* 게이트 타입이 유효 범위 내인지 확인 */ \
+	ASSERT ((d) >= 0 && (d) <= 3); \			 
+	ASSERT ((t) >= 0 && (t) <= 15); \				
 	*(g) = (struct gate) { \
 		.off_15_0 = (uint64_t) (function) & 0xffff, \
 		.ss = SEL_KCSEG, \
