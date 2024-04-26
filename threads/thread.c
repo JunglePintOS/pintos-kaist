@@ -82,7 +82,7 @@ static tid_t allocate_tid (void);
 #define is_thread(t) ((t) != NULL && (t)->magic == THREAD_MAGIC)
 
 /* 실행 중인 스레드를 반환합니다.
- * CPU의 스택 포인터 `rsp`를 읽고, 페이지의 시작으로 반올림합니다.
+ * CPU의 스택 포인터 `rsp`를 읽고, 페이지의 시작으로 내림합니다.
  * `struct thread`는 항상 페이지의 시작에 있고 스택 포인터는 중간 어딘가에 있으므로,
  * 이를 통해 현재 스레드를 찾을 수 있습니다. */
 /* Returns the running thread.
