@@ -142,6 +142,7 @@ struct thread {
 
 	/* Shared between thread.c and synch.c. */
 	struct list_elem elem;              /* 리스트 요소. *//* List element. */
+	int64_t wakeup_ticks;
 
 #ifdef USERPROG
 	/* Owned by userprog/process.c. */
@@ -168,6 +169,10 @@ extern bool thread_mlfqs;
 
 void thread_init (void);
 void thread_start (void);
+
+void thread_sleep(int64_t ticks) ;
+void next_awake_ticks(int64_t ticks);
+void thread_wakeup(int64_t ticks);
 
 void thread_tick (void);
 void thread_print_stats (void);
