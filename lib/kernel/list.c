@@ -402,10 +402,12 @@ void list_insert_desc_ordered(struct list *list, struct list_elem *elem, list_le
     ASSERT(less != NULL);
 
     for (e = list_begin(list); e != list_end(list); e = list_next(e))
-        if (less(e, elem, aux))
+        if (less(e, elem, aux)) {
             break;
+        }
     return list_insert(e, elem);
 }
+
 
 /* Iterates through LIST and removes all but the first in each
    set of adjacent elements that are equal according to LESS
