@@ -1,0 +1,5 @@
+# build
+threads/build/
+vm/build/
+userprog/build/
+filesys/build/
