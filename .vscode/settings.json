@@ -2,6 +2,7 @@
   "files.associations": {
     "vaddr.h": "c",
     "thread.h": "c",
-    "gdt.h": "c"
+    "gdt.h": "c",
+    "process.h": "c"
   }
 }
