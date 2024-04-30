@@ -193,6 +193,9 @@ void thread_yield (void);
 int thread_get_priority (void);
 void thread_set_priority (int);
 
+bool compare_priority(struct list_elem *e1, struct list_elem *e2, void *aux);
+void test_max_priority(void);
+
 int thread_get_nice (void);
 void thread_set_nice (int);
 int thread_get_recent_cpu (void);

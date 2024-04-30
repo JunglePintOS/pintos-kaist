@@ -2,6 +2,11 @@
   "files.associations": {
     "vaddr.h": "c",
     "thread.h": "c",
-    "gdt.h": "c"
+    "gdt.h": "c",
+    "process.h": "c",
+    "stdbool.h": "c",
+    "list.h": "c",
+    "stddef.h": "c",
+    "synch.h": "c"
   }
 }

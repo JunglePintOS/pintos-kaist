@@ -30,6 +30,9 @@
    Do not modify this value. */
 #define THREAD_BASIC 0xd42df210
 
+/* MEMBER */
+#define PRIORITY "priority"
+
 /* THREAD_READY 상태인 프로세스 목록, 즉 실행할 준비는 되었지만 실제로 실행 중이지 않은 프로세스입니다. */
 /* List of processes in THREAD_READY state, that is, processes
    that are ready to run but not actually running. */
@@ -315,6 +318,9 @@ tid_t thread_create(const char *name, int priority, thread_func *function, void 
     /* Add to run queue. */
     thread_unblock(t);
 
+    // 우선순위 스케줄링
+    test_max_priority();
+
     return tid;
 }
 
@@ -358,9 +364,36 @@ void thread_unblock(struct thread *t) {
 
     old_level = intr_disable();
     ASSERT(t->status == THREAD_BLOCKED);
-    list_push_back(&ready_list, &t->elem);
+    // list_push_back(&ready_list, &t->elem);
+    list_insert_desc_ordered(&ready_list, &t->elem, compare_priority, PRIORITY);
     t->status = THREAD_READY;
     intr_set_level(old_level);
+}
+
+/* 값 비교. t1의 우선순위가 낮은 경우 true*/
+bool compare_priority(struct list_elem *e1, struct list_elem *e2, void *aux) {
+    struct thread *t1 = list_entry(e1, struct thread, elem);
+    struct thread *t2 = list_entry(e2, struct thread, elem);
+    int t1_priority = t1->priority;
+    int t2_priority = t2->priority;
+
+    if (t1_priority < t2_priority) {
+        return true;
+    }
+    return false;
+}
+
+// 우선순위 스케줄링 하는 함수
+void test_max_priority(void) {
+    struct thread *curr = thread_current();
+    struct list_elem *highest_elem = list_begin(&ready_list);
+    if (list_end(&ready_list) == (highest_elem)) {
+        return;
+    }
+
+    if (compare_priority(&curr->elem, highest_elem, NULL)) {
+        thread_yield();
+    }
 }
 
 /* 실행 중인 스레드의 이름을 반환합니다. */
@@ -427,10 +460,12 @@ void thread_yield(void) {
     enum intr_level old_level;
 
     ASSERT(!intr_context());
-
+    
     old_level = intr_disable();
-    if (curr != idle_thread)
-        list_push_back(&ready_list, &curr->elem);
+    if (curr != idle_thread) {
+        // list_push_back(&ready_list, &curr->elem);
+        list_insert_desc_ordered(&ready_list, &curr->elem, compare_priority, PRIORITY);
+    }
     do_schedule(THREAD_READY);
     intr_set_level(old_level);
 }
@@ -439,6 +474,7 @@ void thread_yield(void) {
 /* Sets the current thread's priority to NEW_PRIORITY. */
 void thread_set_priority(int new_priority) {
     thread_current()->priority = new_priority;
+    test_max_priority();
 }
 
 /* 현재 스레드의 우선순위를 반환합니다. */
