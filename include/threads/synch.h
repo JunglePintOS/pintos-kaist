@@ -41,6 +41,9 @@ void cond_wait (struct condition *, struct lock *);
 void cond_signal (struct condition *, struct lock *);
 void cond_broadcast (struct condition *, struct lock *);
 
+/* 우선순위 비교 함수 */
+bool sema_compare_priority (struct list_elem *e1, struct list_elem *e2, void *aux);
+
 /* 최적화 바리어입니다.
  *
  * 컴파일러는 최적화 바리어를 통해 연산을 재배열하지 않습니다.
