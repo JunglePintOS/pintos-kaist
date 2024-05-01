@@ -382,6 +382,18 @@ bool compare_priority(struct list_elem *e1, struct list_elem *e2, void *aux) {
     }
     return false;
 }
+/* 값 비교. t1의 우선순위가 낮은 경우 true*/
+bool compare_priority2(struct list_elem *e1, struct list_elem *e2, void *aux) {
+    struct thread *t1 = list_entry(e1, struct thread, elem);
+    struct thread *t2 = list_entry(e2, struct thread, elem);
+    int t1_priority = t1->priority;
+    int t2_priority = t2->priority;
+
+    if (t1_priority > t2_priority) {
+        return true;
+    }
+    return false;
+}
 
 // 우선순위 스케줄링 하는 함수
 void test_max_priority(void) {
@@ -473,7 +485,7 @@ void thread_yield(void) {
 /* 현재 스레드의 우선순위를 NEW_PRIORITY로 설정합니다. */
 /* Sets the current thread's priority to NEW_PRIORITY. */
 void thread_set_priority(int new_priority) {
-    thread_current()->priority = new_priority;
+    thread_current()->init_priority = new_priority;
 
     refresh_priority();
     test_max_priority();
