@@ -140,6 +140,13 @@ struct thread {
 	char name[16];                      /* 디버깅 목적의 이름. *//* Name (for debugging purposes). */
 	int priority;                       /* 우선순위. *//* Priority. */
 
+	// 스레드가 현재 얻기 위해서 기다리고 있는 LOCK
+	int init_priority;
+	
+	struct lock *wait_on_lock;
+	struct list donations;
+	struct list_elem donation_elem;
+
 	/* Shared between thread.c and synch.c. */
 	struct list_elem elem;              /* 리스트 요소. *//* List element. */
 	int64_t wakeup_ticks;
@@ -195,6 +202,11 @@ void thread_set_priority (int);
 
 bool compare_priority(struct list_elem *e1, struct list_elem *e2, void *aux);
 void test_max_priority(void);
+
+// donation 우선순위 비교
+bool thread_compare_donate_priority(struct list_elem *e1, struct list_elem *e2, void *aux);
+void donate_priority(void);
+void remove_with_lock(struct lock *lock);
 
 int thread_get_nice (void);
 void thread_set_nice (int);

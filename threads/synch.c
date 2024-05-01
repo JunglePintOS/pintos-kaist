@@ -70,9 +70,8 @@
 
    - up or "V": increment the value (and wake up one waiting
    thread, if any). */
-void
-sema_init (struct semaphore *sema, unsigned value) {
-	ASSERT (sema != NULL);
+void sema_init(struct semaphore *sema, unsigned value) {
+    ASSERT(sema != NULL);
 
 	sema->value = value;
 	list_init (&sema->waiters);
@@ -80,10 +79,10 @@ sema_init (struct semaphore *sema, unsigned value) {
 
 /* 세마포어에 대한 Down 또는 "P" 연산입니다. SEMA의 값이 양수가 될 때까지 기다린 다음 원자적으로 값을 감소시킵니다.
 
-	 이 함수는 sleep할 수 있으므로 인터럽트 핸들러 내에서 호출해서는 안됩니다.
-	 이 함수는 인터럽트가 비활성화된 상태에서 호출될 수 있지만, 
-	 sleep하는 경우 다음에 예정된 스레드가 아마도 인터럽트를 다시 활성화할 것입니다. 
-	 이것이 sema_down 함수입니다. 
+     이 함수는 sleep할 수 있으므로 인터럽트 핸들러 내에서 호출해서는 안됩니다.
+     이 함수는 인터럽트가 비활성화된 상태에서 호출될 수 있지만,
+     sleep하는 경우 다음에 예정된 스레드가 아마도 인터럽트를 다시 활성화할 것입니다.
+     이것이 sema_down 함수입니다.
 */
 /* 이 함수는 세마포어의 Down 연산을 수행합니다. 
 	 세마포어의 값이 양수가 될 때까지 현재 스레드는 대기 상태가 되며, 대기 목록에 추가됩니다.
@@ -117,7 +116,7 @@ sema_down (struct semaphore *sema) {
 }
 
 /* 세마포어에 대한 Down 또는 "P" 연산을 수행하지만, 세마포어가 이미 0이 아닌 경우에만 수행합니다.
-	 세마포어가 감소되면 true를 반환하고, 그렇지 않으면 false를 반환합니다.
+     세마포어가 감소되면 true를 반환하고, 그렇지 않으면 false를 반환합니다.
 
 	 이 함수는 인터럽트 핸들러에서 호출될 수 있습니다. */
 /* Down or "P" operation on a semaphore, but only if the
@@ -241,8 +240,8 @@ lock_init (struct lock *lock) {
 
 /* LOCK을 획득하며, 필요한 경우 사용 가능할 때까지 대기합니다. 현재 스레드가 이미 잠금을 보유하고 있으면 안 됩니다.
 
-	 이 함수는 sleep할 수 있으므로 인터럽트 핸들러 내에서 호출해서는 안됩니다.
-	 이 함수는 인터럽트가 비활성화된 상태에서 호출될 수 있지만, sleep해야 할 경우 인터럽트가 다시 활성화됩니다. */
+     이 함수는 sleep할 수 있으므로 인터럽트 핸들러 내에서 호출해서는 안됩니다.
+     이 함수는 인터럽트가 비활성화된 상태에서 호출될 수 있지만, sleep해야 할 경우 인터럽트가 다시 활성화됩니다. */
 /* Acquires LOCK, sleeping until it becomes available if
    necessary.  The lock must not already be held by the current
    thread.
@@ -257,8 +256,18 @@ lock_acquire (struct lock *lock) {
 	ASSERT (!intr_context ());
 	ASSERT (!lock_held_by_current_thread (lock));
 
-	sema_down (&lock->semaphore);
-	lock->holder = thread_current ();
+  struct thread *curr = thread_current();
+
+  if (lock->holder) {
+    curr->wait_on_lock = lock;
+    list_insert_ordered(&lock->holder->donations, &curr->donation_elem, thread_compare_donate_priority, NULL);
+				
+		donate_priority();
+  }
+
+  sema_down (&lock->semaphore);
+  curr->wait_on_lock = NULL;
+	lock->holder = curr;
 }
 
 /* LOCK을 획득하려고 시도하고, 성공하면 true를 실패하면 false를 반환합니다.
@@ -298,6 +307,9 @@ void
 lock_release (struct lock *lock) {
 	ASSERT (lock != NULL);
 	ASSERT (lock_held_by_current_thread (lock));
+
+	remove_with_lock(lock);
+	refresh_priority();
 
 	lock->holder = NULL;
 	sema_up (&lock->semaphore);
@@ -408,7 +420,7 @@ cond_signal (struct condition *cond, struct lock *lock UNUSED) {
 	}
 }
 
-/* COND (LOCK에 의해 보호됨)에 대기 중인 모든 스레드를 깨웁니다. 
+/* COND (LOCK에 의해 보호됨)에 대기 중인 모든 스레드를 깨웁니다.
    이 함수를 호출하기 전에 LOCK을 보유해야 합니다.
 
    인터럽트 핸들러는 잠금을 획득할 수 없으므로 인터럽트 핸들러 내에서 조건 변수에 신호를 보내려고 하는 것은 의미가 없습니다. */

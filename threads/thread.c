@@ -474,6 +474,8 @@ void thread_yield(void) {
 /* Sets the current thread's priority to NEW_PRIORITY. */
 void thread_set_priority(int new_priority) {
     thread_current()->priority = new_priority;
+
+    refresh_priority();
     test_max_priority();
 }
 
@@ -586,6 +588,9 @@ static void init_thread(struct thread *t, const char *name, int priority) {
     strlcpy(t->name, name, sizeof t->name);
     t->tf.rsp = (uint64_t)t + PGSIZE - sizeof(void *);
     t->priority = priority;
+    t->init_priority = priority;
+    t->wait_on_lock = NULL;
+    list_init (&t->donations);
     t->magic = THREAD_MAGIC;
 }
 
@@ -791,4 +796,47 @@ static tid_t allocate_tid(void) {
     lock_release(&tid_lock);
 
     return tid;
+}
+
+bool thread_compare_donate_priority(struct list_elem *e1, struct list_elem *e2, void *aux) {
+	return list_entry(e1,struct thread,donation_elem)->priority > list_entry(e2,struct thread, donation_elem)->priority;
+}
+
+void donate_priority(void) {
+
+    int depth;
+    struct thread *curr = thread_current();
+
+    for (depth = 0; depth < 8 ; depth++) {
+        if(!curr->wait_on_lock) 
+            break;
+        struct thread *holder = curr->wait_on_lock->holder;
+        holder->priority = curr->priority;
+        curr = holder;
+    }
+}
+
+void remove_with_lock(struct lock *lock) {
+    struct list_elem *e;
+    struct thread *curr = thread_current();
+
+    for (e = list_begin(&curr->donations); e != list_end(&curr->donations); e = list_next(e)) {
+        struct thread *t = list_entry(e, struct thread, donation_elem);
+        if (t->wait_on_lock == lock) 
+            list_remove(&t->donation_elem);
+    }
+}
+
+void refresh_priority(void) {
+    struct thread *curr = thread_current();
+
+    curr->priority = curr->init_priority;
+
+    if (!list_empty(&curr->donations)) {
+        list_sort(&curr->donations, thread_compare_donate_priority, NULL);
+        
+        struct thread *front = list_entry(list_front(&curr->donations), struct thread, donation_elem);
+        if (front->priority > curr->priority)
+            curr->priority = front->priority;
+    }
 }
