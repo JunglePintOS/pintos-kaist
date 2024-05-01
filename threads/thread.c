@@ -365,13 +365,13 @@ void thread_unblock(struct thread *t) {
     old_level = intr_disable();
     ASSERT(t->status == THREAD_BLOCKED);
     // list_push_back(&ready_list, &t->elem);
-    list_insert_desc_ordered(&ready_list, &t->elem, compare_priority, PRIORITY);
+    list_insert_desc_ordered(&ready_list, &t->elem, less_priority, PRIORITY);
     t->status = THREAD_READY;
     intr_set_level(old_level);
 }
 
 /* 값 비교. t1의 우선순위가 낮은 경우 true*/
-bool compare_priority(struct list_elem *e1, struct list_elem *e2, void *aux) {
+bool less_priority(struct list_elem *e1, struct list_elem *e2, void *aux) {
     struct thread *t1 = list_entry(e1, struct thread, elem);
     struct thread *t2 = list_entry(e2, struct thread, elem);
     int t1_priority = t1->priority;
@@ -382,8 +382,8 @@ bool compare_priority(struct list_elem *e1, struct list_elem *e2, void *aux) {
     }
     return false;
 }
-/* 값 비교. t1의 우선순위가 낮은 경우 true*/
-bool compare_priority2(struct list_elem *e1, struct list_elem *e2, void *aux) {
+/* 값 비교. t1의 우선순위가 낮은 경우 false*/
+bool more_priority(struct list_elem *e1, struct list_elem *e2, void *aux) {
     struct thread *t1 = list_entry(e1, struct thread, elem);
     struct thread *t2 = list_entry(e2, struct thread, elem);
     int t1_priority = t1->priority;
@@ -403,7 +403,7 @@ void test_max_priority(void) {
         return;
     }
 
-    if (compare_priority(&curr->elem, highest_elem, NULL)) {
+    if (less_priority(&curr->elem, highest_elem, NULL)) {
         thread_yield();
     }
 }
@@ -476,7 +476,7 @@ void thread_yield(void) {
     old_level = intr_disable();
     if (curr != idle_thread) {
         // list_push_back(&ready_list, &curr->elem);
-        list_insert_desc_ordered(&ready_list, &curr->elem, compare_priority, PRIORITY);
+        list_insert_desc_ordered(&ready_list, &curr->elem, less_priority, PRIORITY);
     }
     do_schedule(THREAD_READY);
     intr_set_level(old_level);
@@ -841,12 +841,10 @@ void remove_with_lock(struct lock *lock) {
 
 void refresh_priority(void) {
     struct thread *curr = thread_current();
-
     curr->priority = curr->init_priority;
-
+    
     if (!list_empty(&curr->donations)) {
         list_sort(&curr->donations, thread_compare_donate_priority, NULL);
-        
         struct thread *front = list_entry(list_front(&curr->donations), struct thread, donation_elem);
         if (front->priority > curr->priority)
             curr->priority = front->priority;

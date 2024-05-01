@@ -200,8 +200,8 @@ void thread_yield (void);
 int thread_get_priority (void);
 void thread_set_priority (int);
 
-bool compare_priority(struct list_elem *e1, struct list_elem *e2, void *aux);
-bool compare_priority2(struct list_elem *e1, struct list_elem *e2, void *aux);
+bool less_priority(struct list_elem *e1, struct list_elem *e2, void *aux);
+bool more_priority(struct list_elem *e1, struct list_elem *e2, void *aux);
 void test_max_priority(void);
 
 // donation 우선순위 비교
