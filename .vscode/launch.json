@@ -3,8 +3,8 @@
     {
       "type": "gdb",
       "request": "attach",
-      "name": "Attach to gdbserver : threads",
-      "executable": "${workspaceRoot}/threads/build/kernel.o",
+      "name": "Attach to gdbserver : userprog",
+      "executable": "${workspaceRoot}/userprog/build/kernel.o",
       "target": "localhost:1234",
       "remote": true,
       "cwd": "${workspaceRoot}",

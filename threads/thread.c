@@ -679,8 +679,9 @@ static void thread_launch(struct thread *th) {
      * Note that, we SHOULD NOT use any stack from here
      * until switching is done. */
     __asm __volatile(
-        /* 사용될 레지스터를 저장합니다. */
+        /* 사용될 레지스터를 저장합니다. */ 
         /* Store registers that will be used. */
+        // 레지스터에 저장된 값을 스택에 밀어넣기
         "push %%rax\n"
         "push %%rbx\n"
         "push %%rcx\n"
