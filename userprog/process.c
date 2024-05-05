@@ -50,17 +50,17 @@ tid_t process_create_initd(const char *file_name) {
     /* Make a copy of FILE_NAME.
      * Otherwise there's a race between the caller and load(). */
     // 먼저 palloc_get_page(0)를 호출하여 페이지 할당자로부터 메모리 페이지를 할당받아 파일 이름을 복사할 공간(fn_copy)을 확보합니다.
-    // 이는 load() 함수와의 경쟁 상태를 방지하기 위함입니다. load() 함수가 실행 파일을 메모리로 로드하는 동안, 
+    // 이는 load() 함수와의 경쟁 상태를 방지하기 위함입니다. load() 함수가 실행 파일을 메모리로 로드하는 동안,
     // 원본 파일 이름이 변경되거나 손상되는 것을 막기 위해 파일 이름의 복사본을 만드는 것
     fn_copy = palloc_get_page(0);
     if (fn_copy == NULL)
         return TID_ERROR;
-    strlcpy(fn_copy, file_name, PGSIZE); // 4096 바이트(4KB)
+    strlcpy(fn_copy, file_name, PGSIZE);  // 4096 바이트(4KB)
 
     /* Create a new thread to execute FILE_NAME. */
-    // thread_create 함수를 호출하여 새로운 스레드를 생성합니다. 
-    // 이 함수는 실행할 파일의 이름(file_name), 스레드의 우선순위(PRI_DEFAULT), 
-    // 스레드가 시작할 때 실행할 함수(initd), 그리고 initd 함수에 전달할 인자(fn_copy)를 매개변수로 받습니다. 
+    // thread_create 함수를 호출하여 새로운 스레드를 생성합니다.
+    // 이 함수는 실행할 파일의 이름(file_name), 스레드의 우선순위(PRI_DEFAULT),
+    // 스레드가 시작할 때 실행할 함수(initd), 그리고 initd 함수에 전달할 인자(fn_copy)를 매개변수로 받습니다.
     // 즉, 이 새로운 스레드는 initd 함수를 실행하게 되며, 이 함수는 파일 이름의 복사본을 사용하여 해당 파일을 로드하고 실행
     tid = thread_create(file_name, PRI_DEFAULT, initd, fn_copy);
     // 스레드 생성에 실패할 경우(TID_ERROR), 할당받았던 메모리 페이지(fn_copy)를 해제합니다. 이는 메모리 누수를 방지
@@ -75,7 +75,7 @@ tid_t process_create_initd(const char *file_name) {
 static void initd(void *f_name) {
 // #ifdef VM부터 #endif까지의 코드는 Pintos의 가상 메모리 관리 기능이 활성화되어 있을 때만 실행됩니다.
 #ifdef VM
-    //  현재 스레드의 보조 페이지 테이블을 초기화합니다. 
+    //  현재 스레드의 보조 페이지 테이블을 초기화합니다.
     // 이는 가상 메모리 관리에 사용되며, 페이지 폴트 발생 시 필요한 페이지를 찾기 위해 사용됩니다.
     supplemental_page_table_init(&thread_current()->spt);
 #endif
@@ -86,13 +86,13 @@ static void initd(void *f_name) {
     // f_name에 지정된 이름의 파일을 실행 파일로 로드하고 실행합니다. 이 함수는 성공 시 0 이상의 값을, 실패 시 -1을 반환합니다.
     if (process_exec(f_name) < 0)
         PANIC("Fail to launch initd\n");
-    // process_exec가 성공적으로 실행되면 해당 프로세스 내에서 계속 실행되므로, NOT_REACHED() 아래의 코드가 실행될 일이 없습니다. 
+    // process_exec가 성공적으로 실행되면 해당 프로세스 내에서 계속 실행되므로, NOT_REACHED() 아래의 코드가 실행될 일이 없습니다.
     NOT_REACHED();
 }
 
 /* Clones the current process as `name`. Returns the new process's thread id, or
  * TID_ERROR if the thread cannot be created. */
-//  현재 프로세스(스레드)를 복제하여 새로운 프로세스(스레드)를 생성하고, 
+//  현재 프로세스(스레드)를 복제하여 새로운 프로세스(스레드)를 생성하고,
 // 생성된 새 프로세스의 스레드 ID를 반환합니다. 만약 스레드 생성에 실패할 경우 TID_ERROR를 반환
 tid_t process_fork(const char *name, struct intr_frame *if_ UNUSED) {
     /* Clone current thread to new thread.*/
@@ -185,10 +185,10 @@ int process_exec(void *f_name) {
     char *token, *save_ptr;
     int count = 0;
 
-    for (token = strtok_r (f_name, " ", &save_ptr); token != NULL; token = strtok_r (NULL, " ", &save_ptr))
+    for (token = strtok_r(f_name, " ", &save_ptr); token != NULL; token = strtok_r(NULL, " ", &save_ptr))
         parse[count++] = token;
-        
-        // printf ("'%s'\n", token);
+
+    // printf ("'%s'\n", token);
     /* We cannot use the intr_frame in the thread structure.
      * This is because when current thread rescheduled,
      * it stores the execution information to the member. */
@@ -200,13 +200,12 @@ int process_exec(void *f_name) {
     /* We first kill the current context */
     process_cleanup();
 
-   
     /* And then load the binary */
     success = load(file_name, &_if);
 
-    argument_stack(parse, count, &_if); // 프로그램 이름과 인자가 저장되어 있는 메모리 공간, count: 인자의 개수, rsp: 스택 포인터를 가리키는 주소
+    argument_stack(parse, count, &_if);  // 프로그램 이름과 인자가 저장되어 있는 메모리 공간, count: 인자의 개수, rsp: 스택 포인터를 가리키는 주소
     // hex_dump(_if.rsp, _if.rsp, USER_STACK - _if.rsp, true);
-   
+
     /* If load failed, quit. */
     palloc_free_page(file_name);
     if (!success)
@@ -221,7 +220,7 @@ void argument_stack(char **parse, int count, struct intr_frame *tf) {
     int total = 0;
     uint64_t addr[count];
     /* 인자 끝부터 함수이름까지 스택에 저장 */
-    for (int i = count-1; i >= 0; i--){
+    for (int i = count - 1; i >= 0; i--) {
         total += strlen(parse[i]) + 1;
         tf->rsp = tf->rsp - strlen(parse[i]) - 1;
         memcpy(tf->rsp, parse[i], strlen(parse[i]) + 1);
@@ -231,7 +230,7 @@ void argument_stack(char **parse, int count, struct intr_frame *tf) {
     /* 인자들 패딩 넣기 (더블워드정렬) */
     int padding = 0;
     int remainder = total % 8;
-    if (remainder != 0) { // 8의 배수가 아니라면
+    if (remainder != 0) {  // 8의 배수가 아니라면
         padding = 8 - remainder;
     }
 
@@ -240,28 +239,27 @@ void argument_stack(char **parse, int count, struct intr_frame *tf) {
     // printf("padding : %d\n",padding);
 
     tf->rsp = tf->rsp - padding;
-    memset(tf->rsp, 0, padding); 
+    memset(tf->rsp, 0, padding);
     tf->rsp = tf->rsp - 8;
     memset(tf->rsp, 0, 8);
 
     /* 포인터 인자+1개 담기 */
-    for (int i = count-1; i >= 0; i--){
+    for (int i = count - 1; i >= 0; i--) {
         tf->rsp = tf->rsp - 8;
         // printf("addr 주소 : %p\n",&addr[i]);
-        memcpy(tf->rsp, &addr[i], 8);  
+        memcpy(tf->rsp, &addr[i], 8);
     }
     tf->rsp = tf->rsp - 8;
     memset(tf->rsp, 0, 8);
 
     hex_dump(tf->rsp, tf->rsp, USER_STACK - tf->rsp, true);
 
-    //rdi, rsi 값 넣기
+    // rdi, rsi 값 넣기
     tf->R.rdi = count;
-    tf->R.rsi = (void*)&addr[count-1];
+    tf->R.rsi = (void *)&addr[count - 1];
 
     // printf("rdi : %d\n",tf->R.rdi);
     // printf("rsi : %p\n", tf->R.rsi);
-
 }
 
 /* Waits for thread TID to die and returns its exit status.  If
@@ -277,8 +275,7 @@ int process_wait(tid_t child_tid UNUSED) {
     /* XXX: Hint) The pintos exit if process_wait (initd), we recommend you
      * XXX:       to add infinite loop here before
      * XXX:       implementing the process_wait. */
-    for(int i = 0; i < 10000000; i++){
-
+    for (int i = 0; i < 10000000; i++) {
     }
     return -1;
 }
@@ -351,21 +348,21 @@ void process_activate(struct thread *next) {
 
 /* Executable header.  See [ELF1] 1-4 to 1-8.
  * This appears at the very beginning of an ELF binary. */
-struct ELF64_hdr { // 실행파일을 위한 파일 형식
-    unsigned char e_ident[EI_NIDENT]; // 오프셋 0X00 ~ 0X09
-    uint16_t e_type; // 0X10 1, 2, 3, 4 는 각각 재배치, 실행, 공유, 코어를 명시 [2바이트]
-    uint16_t e_machine; // 0X12 대상 명령어 집합을 명시 [2바이트]
-    uint32_t e_version; // 0X14 오리지널 ELF인 경우 1로 설정된다.[4바이트]
-    uint64_t e_entry;  // 0X18 엔트리 포인트의 메모리 주소, 프로세스가 어디서 실행을 시작하는지를 말한다. [8바이트]
-    uint64_t e_phoff; // 0X20 프로그램 헤더 테이블의 시작을 가리킨다. [8바이트]
-    uint64_t e_shoff; // 0X28 섹션 헤더 테이블의 시작을 가리킨다. [8바이트]
-    uint32_t e_flags; // 0x30	e_flags	대상 아키텍처에 따라 이 필드의 해석이 달라진다. [4바이트]
-    uint16_t e_ehsize; // 0x34 e_ehsize	이 헤더의 크기를 가지며 일반적으로 64비트의 경우 64바이트, 32비트의 경우 52바이트이다. [2바이트]
-    uint16_t e_phentsize; // 0x36	e_phentsize	프로그램 헤더 테이블 엔트리의 크기를 갖는다. [2바이트]
-    uint16_t e_phnum; // 0x38	e_phnum	프로그램 헤더 테이블에서 엔트리의 개수. [2바이트]
-    uint16_t e_shentsize; // 0x3A	2	e_shentsize	섹션 헤더 테이블 엔트리의 크기를 갖는다. [2바이트]
-    uint16_t e_shnum; // 0x3C	2	e_shnum	섹션 헤더 테이블에서 엔트리의 개수. [2바이트]
-    uint16_t e_shstrndx; // 0x3E e_shstrndx	섹션 이름들을 포함하는 섹션 헤더 테이블 엔트리의 인덱스. [2바이트]
+struct ELF64_hdr {                     // 실행파일을 위한 파일 형식
+    unsigned char e_ident[EI_NIDENT];  // 오프셋 0X00 ~ 0X09
+    uint16_t e_type;                   // 0X10 1, 2, 3, 4 는 각각 재배치, 실행, 공유, 코어를 명시 [2바이트]
+    uint16_t e_machine;                // 0X12 대상 명령어 집합을 명시 [2바이트]
+    uint32_t e_version;                // 0X14 오리지널 ELF인 경우 1로 설정된다.[4바이트]
+    uint64_t e_entry;                  // 0X18 엔트리 포인트의 메모리 주소, 프로세스가 어디서 실행을 시작하는지를 말한다. [8바이트]
+    uint64_t e_phoff;                  // 0X20 프로그램 헤더 테이블의 시작을 가리킨다. [8바이트]
+    uint64_t e_shoff;                  // 0X28 섹션 헤더 테이블의 시작을 가리킨다. [8바이트]
+    uint32_t e_flags;                  // 0x30	e_flags	대상 아키텍처에 따라 이 필드의 해석이 달라진다. [4바이트]
+    uint16_t e_ehsize;     // 0x34 e_ehsize	이 헤더의 크기를 가지며 일반적으로 64비트의 경우 64바이트, 32비트의 경우 52바이트이다. [2바이트]
+    uint16_t e_phentsize;  // 0x36	e_phentsize	프로그램 헤더 테이블 엔트리의 크기를 갖는다. [2바이트]
+    uint16_t e_phnum;      // 0x38	e_phnum	프로그램 헤더 테이블에서 엔트리의 개수. [2바이트]
+    uint16_t e_shentsize;  // 0x3A	2	e_shentsize	섹션 헤더 테이블 엔트리의 크기를 갖는다. [2바이트]
+    uint16_t e_shnum;      // 0x3C	2	e_shnum	섹션 헤더 테이블에서 엔트리의 개수. [2바이트]
+    uint16_t e_shstrndx;   // 0x3E e_shstrndx	섹션 이름들을 포함하는 섹션 헤더 테이블 엔트리의 인덱스. [2바이트]
 };
 
 struct ELF64_PHDR {
