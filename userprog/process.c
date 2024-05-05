@@ -351,21 +351,21 @@ void process_activate(struct thread *next) {
 
 /* Executable header.  See [ELF1] 1-4 to 1-8.
  * This appears at the very beginning of an ELF binary. */
-struct ELF64_hdr {
-    unsigned char e_ident[EI_NIDENT];
-    uint16_t e_type;
-    uint16_t e_machine;
-    uint32_t e_version;
-    uint64_t e_entry;
-    uint64_t e_phoff;
-    uint64_t e_shoff;
-    uint32_t e_flags;
-    uint16_t e_ehsize;
-    uint16_t e_phentsize;
-    uint16_t e_phnum;
-    uint16_t e_shentsize;
-    uint16_t e_shnum;
-    uint16_t e_shstrndx;
+struct ELF64_hdr { // 실행파일을 위한 파일 형식
+    unsigned char e_ident[EI_NIDENT]; // 오프셋 0X00 ~ 0X09
+    uint16_t e_type; // 0X10 1, 2, 3, 4 는 각각 재배치, 실행, 공유, 코어를 명시 [2바이트]
+    uint16_t e_machine; // 0X12 대상 명령어 집합을 명시 [2바이트]
+    uint32_t e_version; // 0X14 오리지널 ELF인 경우 1로 설정된다.[4바이트]
+    uint64_t e_entry;  // 0X18 엔트리 포인트의 메모리 주소, 프로세스가 어디서 실행을 시작하는지를 말한다. [8바이트]
+    uint64_t e_phoff; // 0X20 프로그램 헤더 테이블의 시작을 가리킨다. [8바이트]
+    uint64_t e_shoff; // 0X28 섹션 헤더 테이블의 시작을 가리킨다. [8바이트]
+    uint32_t e_flags; // 0x30	e_flags	대상 아키텍처에 따라 이 필드의 해석이 달라진다. [4바이트]
+    uint16_t e_ehsize; // 0x34 e_ehsize	이 헤더의 크기를 가지며 일반적으로 64비트의 경우 64바이트, 32비트의 경우 52바이트이다. [2바이트]
+    uint16_t e_phentsize; // 0x36	e_phentsize	프로그램 헤더 테이블 엔트리의 크기를 갖는다. [2바이트]
+    uint16_t e_phnum; // 0x38	e_phnum	프로그램 헤더 테이블에서 엔트리의 개수. [2바이트]
+    uint16_t e_shentsize; // 0x3A	2	e_shentsize	섹션 헤더 테이블 엔트리의 크기를 갖는다. [2바이트]
+    uint16_t e_shnum; // 0x3C	2	e_shnum	섹션 헤더 테이블에서 엔트리의 개수. [2바이트]
+    uint16_t e_shstrndx; // 0x3E e_shstrndx	섹션 이름들을 포함하는 섹션 헤더 테이블 엔트리의 인덱스. [2바이트]
 };
 
 struct ELF64_PHDR {
