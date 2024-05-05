@@ -1,5 +1,5 @@
 #include "userprog/process.h"
-
+#define USERPROG
 #include <debug.h>
 #include <inttypes.h>
 #include <round.h>
@@ -181,6 +181,14 @@ int process_exec(void *f_name) {
     char *file_name = f_name;
     bool success;
 
+    char *parse[64];
+    char *token, *save_ptr;
+    int count = 0;
+
+    for (token = strtok_r (f_name, " ", &save_ptr); token != NULL; token = strtok_r (NULL, " ", &save_ptr))
+        parse[count++] = token;
+        
+        // printf ("'%s'\n", token);
     /* We cannot use the intr_frame in the thread structure.
      * This is because when current thread rescheduled,
      * it stores the execution information to the member. */
@@ -192,9 +200,13 @@ int process_exec(void *f_name) {
     /* We first kill the current context */
     process_cleanup();
 
+   
     /* And then load the binary */
     success = load(file_name, &_if);
 
+    argument_stack(parse, count, &_if); // 프로그램 이름과 인자가 저장되어 있는 메모리 공간, count: 인자의 개수, rsp: 스택 포인터를 가리키는 주소
+    // hex_dump(_if.rsp, _if.rsp, USER_STACK - _if.rsp, true);
+   
     /* If load failed, quit. */
     palloc_free_page(file_name);
     if (!success)
@@ -203,6 +215,53 @@ int process_exec(void *f_name) {
     /* Start switched process. */
     do_iret(&_if);
     NOT_REACHED();
+}
+
+void argument_stack(char **parse, int count, struct intr_frame *tf) {
+    int total = 0;
+    uint64_t addr[count];
+    /* 인자 끝부터 함수이름까지 스택에 저장 */
+    for (int i = count-1; i >= 0; i--){
+        total += strlen(parse[i]) + 1;
+        tf->rsp = tf->rsp - strlen(parse[i]) - 1;
+        memcpy(tf->rsp, parse[i], strlen(parse[i]) + 1);
+        addr[i] = tf->rsp;
+    }
+
+    /* 인자들 패딩 넣기 (더블워드정렬) */
+    int padding = 0;
+    int remainder = total % 8;
+    if (remainder != 0) { // 8의 배수가 아니라면
+        padding = 8 - remainder;
+    }
+
+    // 출력용
+    // printf("total: %d\n",total);
+    // printf("padding : %d\n",padding);
+
+    tf->rsp = tf->rsp - padding;
+    memset(tf->rsp, 0, padding); 
+    tf->rsp = tf->rsp - 8;
+    memset(tf->rsp, 0, 8);
+
+    /* 포인터 인자+1개 담기 */
+    for (int i = count-1; i >= 0; i--){
+        tf->rsp = tf->rsp - 8;
+        // printf("addr 주소 : %p\n",&addr[i]);
+        memcpy(tf->rsp, &addr[i], 8);  
+    }
+    tf->rsp = tf->rsp - 8;
+    memset(tf->rsp, 0, 8);
+
+    hex_dump(tf->rsp, tf->rsp, USER_STACK - tf->rsp, true);
+
+    //rdi, rsi 값 넣기
+    tf->R.rdi = count;
+    tf->R.rsi = (void*)&addr[count-1];
+
+    // printf("rdi : %d\n",tf->R.rdi);
+    // printf("rsi : %p\n", tf->R.rsi);
+
 }
 
 /* Waits for thread TID to die and returns its exit status.  If
@@ -218,6 +277,9 @@ int process_wait(tid_t child_tid UNUSED) {
     /* XXX: Hint) The pintos exit if process_wait (initd), we recommend you
      * XXX:       to add infinite loop here before
      * XXX:       implementing the process_wait. */
+    for(int i = 0; i < 10000000; i++){
+
+    }
     return -1;
 }
 

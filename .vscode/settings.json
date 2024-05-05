@@ -7,6 +7,10 @@
     "stdbool.h": "c",
     "list.h": "c",
     "stddef.h": "c",
-    "synch.h": "c"
+    "synch.h": "c",
+    "stdlib.h": "c",
+    "debug.h": "c",
+    "inttypes.h": "c",
+    "stdio.h": "c"
   }
 }
