@@ -8,8 +8,10 @@
 #include "threads/flags.h"
 #include "intrinsic.h"
 
-void syscall_entry (void);
-void syscall_handler (struct intr_frame *);
+void syscall_entry(void);
+void syscall_handler(struct intr_frame *);
+void halt();
+void exit(int status);
 
 /* 시스템 호출.
  *
@@ -50,10 +52,40 @@ syscall_init (void) {
 
 /* 주요 시스템 호출 인터페이스 */
 /* The main system call interface */
-void
-syscall_handler (struct intr_frame *f UNUSED) {
-	// todo: 구현을 여기에 하세요
-	// TODO: Your implementation goes here.
-	printf ("system call!\n");
-	thread_exit ();
+void syscall_handler(struct intr_frame *f UNUSED) {
+    // todo: 구현을 여기에 하세요
+    // TODO: Your implementation goes here.
+    printf("system call!\n");
+
+    int sys_num = f->R.rax;
+    printf("sys_num : %d\n",sys_num);
+
+    switch (sys_num)
+    {
+    case SYS_HALT:
+      halt();
+      break;
+    case SYS_WRITE:
+      break;
+    case SYS_EXIT:
+      exit(f->R.rdi);
+      break;
+    default:
+      thread_exit();
+      break;
+    }
+    // thread_exit();
 }
+
+void halt() {
+  printf("halt test \n");
+  power_off();
+}
+
+// 현재 실행중인 스레드를 종료하는 함수
+void exit(int status) {
+  printf("exit test \n");
+  struct thread *t = thread_current();
+  thread_exit();
+}
+

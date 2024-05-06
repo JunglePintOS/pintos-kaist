@@ -11,6 +11,7 @@
     "stdlib.h": "c",
     "debug.h": "c",
     "inttypes.h": "c",
-    "stdio.h": "c"
+    "stdio.h": "c",
+    "*.inc": "c"
   }
 }
