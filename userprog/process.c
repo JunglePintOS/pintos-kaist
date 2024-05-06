@@ -286,7 +286,7 @@ void argument_stack(char **parse, int count, struct intr_frame *tf) {
 
     // rdi, rsi 값 넣기
     tf->R.rdi = count;
-    tf->R.rsi = (void *)&addr[count - 1];
+    tf->R.rsi = tf->rsp + 8;
 
     // printf("rdi : %d\n",tf->R.rdi);
     // printf("rsi : %p\n", tf->R.rsi);

@@ -402,8 +402,8 @@ void test_max_priority(void) {
     if (list_end(&ready_list) == (highest_elem)) {
         return;
     }
-
-    if (less_priority(&curr->elem, highest_elem, NULL)) {
+    // 인터럽트 컨텍스트가 아니고, 현재 스레드의 우선순위가 준비 리스트의 최고 우선순위 스레드보다 낮다면
+    if (!intr_context() && less_priority(&curr->elem, highest_elem, NULL)) {
         thread_yield();
     }
 }
