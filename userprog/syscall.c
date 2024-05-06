@@ -14,6 +14,7 @@ void syscall_handler(struct intr_frame *);
 void halt();
 void exit(int status);
 bool create(const char *name, off_t initial_size);
+bool remove(const char *name);
 
 /* 시스템 호출.
  *
@@ -77,10 +78,17 @@ void syscall_handler(struct intr_frame *f UNUSED) {
     case SYS_CREATE:
       f->R.rax = create(f->R.rdi, f->R.rsi);
       break;
+    case SYS_REMOVE:
+      printf("name : %s\n",f->R.rdi);
+      printf("name addr : %p\n",&f->R.rdi);
+      printf("name addr : %p\n",f->R.rdi);
+      f->R.rax = remove(f->R.rdi);
+      break;
     default:
       thread_exit();
       break;
     }
+    
     // thread_exit();
 }
 
@@ -111,5 +119,13 @@ bool create(const char *name, off_t initial_size) {
   printf("create test : name %s \n", name);
   return filesys_create(name, initial_size);
 }
+
+bool remove(const char *name) {
+  check_address(name);
+  printf("remove test \n");
+  return filesys_remove(name);
+}
+
+
 
 
