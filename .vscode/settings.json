@@ -12,6 +12,7 @@
     "debug.h": "c",
     "inttypes.h": "c",
     "stdio.h": "c",
-    "*.inc": "c"
+    "*.inc": "c",
+    "intrinsic.h": "c"
   }
 }

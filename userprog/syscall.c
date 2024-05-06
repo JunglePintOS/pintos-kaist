@@ -70,6 +70,8 @@ void syscall_handler(struct intr_frame *f UNUSED) {
     case SYS_EXIT:
       exit(f->R.rdi);
       break;
+    case SYS_FORK:
+      break;
     default:
       thread_exit();
       break;
@@ -77,15 +79,27 @@ void syscall_handler(struct intr_frame *f UNUSED) {
     // thread_exit();
 }
 
+/* 주소 유효성 검수하는 함수 */
+void check_address(void *addr) {
+  struct thread *t = thread_current();
+
+  if (addr == NULL || !is_user_vaddr(addr)) // 사용자 영역 주소인지 확인
+    exit(-1);
+  if (pml4_get_page(t->pml4, addr) == NULL) // 페이지로 할당된 영역인지 확인
+    exit(-1);
+}
+
 void halt() {
   printf("halt test \n");
   power_off();
 }
 
-// 현재 실행중인 스레드를 종료하는 함수
+/* 현재 실행중인 스레드를 종료하는 함수 */
 void exit(int status) {
   printf("exit test \n");
   struct thread *t = thread_current();
   thread_exit();
 }
+
+
 
