@@ -8,6 +8,7 @@
 #include "threads/flags.h"
 #include "intrinsic.h"
 #include "filesys/filesys.h"
+#include "filesys/file.h"
 
 void syscall_entry(void);
 void syscall_handler(struct intr_frame *);
@@ -15,6 +16,7 @@ void halt();
 void exit(int status);
 bool create(const char *name, off_t initial_size);
 bool remove(const char *name);
+int write(int fd, const void *buffer, unsigned size);
 
 /* 시스템 호출.
  *
@@ -69,6 +71,7 @@ void syscall_handler(struct intr_frame *f UNUSED) {
       halt();
       break;
     case SYS_WRITE:
+      f->R.rax = write(f->R.rdi, f->R.rsi, f->R.rdx);
       break;
     case SYS_EXIT:
       exit(f->R.rdi);
@@ -79,9 +82,6 @@ void syscall_handler(struct intr_frame *f UNUSED) {
       f->R.rax = create(f->R.rdi, f->R.rsi);
       break;
     case SYS_REMOVE:
-      printf("name : %s\n",f->R.rdi);
-      printf("name addr : %p\n",&f->R.rdi);
-      printf("name addr : %p\n",f->R.rdi);
       f->R.rax = remove(f->R.rdi);
       break;
     default:
@@ -124,6 +124,13 @@ bool remove(const char *name) {
   check_address(name);
   printf("remove test \n");
   return filesys_remove(name);
+}
+
+/* console 출력하는 함수 */
+int write(int fd, const void *buffer, unsigned size) {
+  if (fd == STDOUT_FILENO)
+    putbuf(buffer, size);
+  return size;
 }
 
 
