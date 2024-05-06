@@ -7,11 +7,13 @@
 #include "userprog/gdt.h"
 #include "threads/flags.h"
 #include "intrinsic.h"
+#include "filesys/filesys.h"
 
 void syscall_entry(void);
 void syscall_handler(struct intr_frame *);
 void halt();
 void exit(int status);
+bool create(const char *name, off_t initial_size);
 
 /* 시스템 호출.
  *
@@ -72,6 +74,9 @@ void syscall_handler(struct intr_frame *f UNUSED) {
       break;
     case SYS_FORK:
       break;
+    case SYS_CREATE:
+      f->R.rax = create(f->R.rdi, f->R.rsi);
+      break;
     default:
       thread_exit();
       break;
@@ -101,5 +106,10 @@ void exit(int status) {
   thread_exit();
 }
 
+bool create(const char *name, off_t initial_size) {
+  check_address(name);
+  printf("create test : name %s \n", name);
+  return filesys_create(name, initial_size);
+}
 
 
