@@ -10,6 +10,7 @@
 #include "filesys/filesys.h"
 #include "filesys/file.h"
 
+
 void syscall_entry(void);
 void syscall_handler(struct intr_frame *);
 void halt();
@@ -17,6 +18,7 @@ void exit(int status);
 bool create(const char *name, off_t initial_size);
 bool remove(const char *name);
 int write(int fd, const void *buffer, unsigned size);
+int open(const char *name);
 
 /* 시스템 호출.
  *
@@ -84,6 +86,10 @@ void syscall_handler(struct intr_frame *f UNUSED) {
     case SYS_REMOVE:
       f->R.rax = remove(f->R.rdi);
       break;
+    case SYS_OPEN:
+      f->R.rax = open(f->R.rdi);
+      printf("open sys call의 rax 반환값 : %d \n", f->R.rax);
+      break;
     default:
       thread_exit();
       break;
@@ -109,6 +115,7 @@ void halt() {
 
 /* 현재 실행중인 스레드를 종료하는 함수 */
 void exit(int status) {
+  // 추후 종료 상태 코드로 변경하는 기능 추가할것.
   printf("exit test \n");
   struct thread *t = thread_current();
   thread_exit();
@@ -126,6 +133,25 @@ bool remove(const char *name) {
   return filesys_remove(name);
 }
 
+
+int open(const char *name) {
+  printf("open test \n");
+  check_address(name);
+  struct file *file_obj = filesys_open(name); 
+
+  if (file_obj == NULL) {
+    return -1;
+  }
+
+  int fd = add_file_to_fdt(file_obj);
+
+  if (fd == -1) {
+    file_close(file_obj);
+  }
+
+  return fd;
+}
+
 /* console 출력하는 함수 */
 int write(int fd, const void *buffer, unsigned size) {
   if (fd == STDOUT_FILENO)
@@ -133,6 +159,23 @@ int write(int fd, const void *buffer, unsigned size) {
   return size;
 }
 
+// ### fdt functions
 
+// 파일을 현재스레드의 fdt에 추가
+int add_file_to_fdt(struct file *file) {
+  struct thread *t = thread_current();
+  struct file **fdt = t->fdt;
+  int fd = t->fd_idx;
 
+  while (t->fdt[fd] != NULL && fd < FDT_COUNT_LIMIT) {
+    fd++;
+  }
+
+  if (fd >= FDT_COUNT_LIMIT) {
+    return -1;
+  }
+  t->fd_idx = fd;
+  fdt[fd] = file;
+  return fd;
+}
 

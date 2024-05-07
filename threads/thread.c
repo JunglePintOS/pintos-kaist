@@ -314,6 +314,15 @@ tid_t thread_create(const char *name, int priority, thread_func *function, void 
     t->tf.cs = SEL_KCSEG;
     t->tf.eflags = FLAG_IF;
 
+    // for project 2 sys call
+    t->fdt = palloc_get_multiple(PAL_ZERO, FDT_PAGES);
+    if (t->fdt == NULL) {
+        return TID_ERROR;
+    }
+    t->fd_idx = 2;
+    t->fdt[0] = 1;  //stdin
+    t->fdt[1] = 2;  //stdout
+
     /* 준비 큐에 추가. */
     /* Add to run queue. */
     thread_unblock(t);

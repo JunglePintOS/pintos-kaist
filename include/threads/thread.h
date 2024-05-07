@@ -5,6 +5,11 @@
 #include <list.h>
 #include <stdint.h>
 #include "threads/interrupt.h"
+
+// project2 syscall fdt
+#define FDT_PAGES 3
+#define FDT_COUNT_LIMIT FDT_PAGES * (1<<9) 
+
 #ifdef VM
 #include "vm/vm.h"
 #endif
@@ -150,6 +155,10 @@ struct thread {
 	/* Shared between thread.c and synch.c. */
 	struct list_elem elem;              /* 리스트 요소. *//* List element. */
 	int64_t wakeup_ticks;
+
+	// project 2: fdt
+	struct file **fdt;
+	int fd_idx;
 
 #ifdef USERPROG
 	/* Owned by userprog/process.c. */
