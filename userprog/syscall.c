@@ -1,15 +1,16 @@
 #include "userprog/syscall.h"
+
 #include <stdio.h>
 #include <syscall-nr.h>
-#include "threads/interrupt.h"
-#include "threads/thread.h"
-#include "threads/loader.h"
-#include "userprog/gdt.h"
-#include "threads/flags.h"
-#include "intrinsic.h"
-#include "filesys/filesys.h"
-#include "filesys/file.h"
 
+#include "filesys/file.h"
+#include "filesys/filesys.h"
+#include "intrinsic.h"
+#include "threads/flags.h"
+#include "threads/interrupt.h"
+#include "threads/loader.h"
+#include "threads/thread.h"
+#include "userprog/gdt.h"
 
 void syscall_entry(void);
 void syscall_handler(struct intr_frame *);
@@ -19,6 +20,8 @@ bool create(const char *name, off_t initial_size);
 bool remove(const char *name);
 int write(int fd, const void *buffer, unsigned size);
 int open(const char *name);
+int add_file_to_fdt(struct file *file);
+int filesize(int fd);
 
 /* 시스템 호출.
  *
@@ -37,9 +40,9 @@ int open(const char *name);
  * The syscall instruction works by reading the values from the the Model
  * Specific Register (MSR). For the details, see the manual. */
 
-#define MSR_STAR 0xc0000081         /* 세그먼트 선택자 MSR *//* Segment selector msr */
-#define MSR_LSTAR 0xc0000082        /* Long mode SYSCALL target *//* Long mode SYSCALL target */
-#define MSR_SYSCALL_MASK 0xc0000084 /* eflags용 마스크 *//* Mask for the eflags */
+#define MSR_STAR 0xc0000081 /* 세그먼트 선택자 MSR */       /* Segment selector msr */
+#define MSR_LSTAR 0xc0000082 /* Long mode SYSCALL target */ /* Long mode SYSCALL target */
+#define MSR_SYSCALL_MASK 0xc0000084 /* eflags용 마스크 */   /* Mask for the eflags */
 
 void
 syscall_init (void) {
@@ -57,6 +60,7 @@ syscall_init (void) {
 			FLAG_IF | FLAG_TF | FLAG_DF | FLAG_IOPL | FLAG_AC | FLAG_NT);
 }
 
+
 /* 주요 시스템 호출 인터페이스 */
 /* The main system call interface */
 void syscall_handler(struct intr_frame *f UNUSED) {
@@ -65,117 +69,138 @@ void syscall_handler(struct intr_frame *f UNUSED) {
     printf("system call!\n");
 
     int sys_num = f->R.rax;
-    printf("sys_num : %d\n",sys_num);
+    printf("sys_num : %d\n", sys_num);
 
-    switch (sys_num)
-    {
-    case SYS_HALT:
-      halt();
-      break;
-    case SYS_WRITE:
-      f->R.rax = write(f->R.rdi, f->R.rsi, f->R.rdx);
-      break;
-    case SYS_EXIT:
-      exit(f->R.rdi);
-      break;
-    case SYS_FORK:
-      break;
-    case SYS_CREATE:
-      f->R.rax = create(f->R.rdi, f->R.rsi);
-      break;
-    case SYS_REMOVE:
-      f->R.rax = remove(f->R.rdi);
-      break;
-    case SYS_OPEN:
-      f->R.rax = open(f->R.rdi);
-      printf("open sys call의 rax 반환값 : %d \n", f->R.rax);
-      break;
-    default:
-      thread_exit();
-      break;
+    switch (sys_num) {
+        case SYS_HALT:
+            halt();
+            break;
+        case SYS_WRITE:
+            f->R.rax = write(f->R.rdi, f->R.rsi, f->R.rdx);
+            break;
+        case SYS_EXIT:
+            exit(f->R.rdi);
+            break;
+        case SYS_FORK:
+            break;
+        case SYS_CREATE:
+            f->R.rax = create(f->R.rdi, f->R.rsi);
+            break;
+        case SYS_REMOVE:
+            f->R.rax = remove(f->R.rdi);
+            break;
+        case SYS_OPEN:
+            f->R.rax = open(f->R.rdi);
+            printf("open sys call의 rax 반환값 : %d \n", f->R.rax);
+            break;
+        case SYS_FILESIZE:
+            f->R.rax = filesize(f->R.rdi);
+            break;
+        default:
+            thread_exit();
+            break;
     }
-    
+
     // thread_exit();
 }
 
 /* 주소 유효성 검수하는 함수 */
 void check_address(void *addr) {
-  struct thread *t = thread_current();
+    struct thread *t = thread_current();
 
-  if (addr == NULL || !is_user_vaddr(addr)) // 사용자 영역 주소인지 확인
-    exit(-1);
-  if (pml4_get_page(t->pml4, addr) == NULL) // 페이지로 할당된 영역인지 확인
-    exit(-1);
+    if (addr == NULL || !is_user_vaddr(addr))  // 사용자 영역 주소인지 확인
+        exit(-1);
+    if (pml4_get_page(t->pml4, addr) == NULL)  // 페이지로 할당된 영역인지 확인
+        exit(-1);
 }
 
 void halt() {
-  printf("halt test \n");
-  power_off();
+    printf("halt test \n");
+    power_off();
 }
 
 /* 현재 실행중인 스레드를 종료하는 함수 */
 void exit(int status) {
-  // 추후 종료 상태 코드로 변경하는 기능 추가할것.
-  printf("exit test \n");
-  struct thread *t = thread_current();
-  thread_exit();
+    // 추후 종료 상태 코드로 변경하는 기능 추가할것.
+    printf("exit test \n");
+    struct thread *t = thread_current();
+    thread_exit();
 }
 
 bool create(const char *name, off_t initial_size) {
-  check_address(name);
-  printf("create test : name %s \n", name);
-  return filesys_create(name, initial_size);
+    check_address(name);
+    printf("create test : name %s \n", name);
+    return filesys_create(name, initial_size);
 }
 
 bool remove(const char *name) {
-  check_address(name);
-  printf("remove test \n");
-  return filesys_remove(name);
+    check_address(name);
+    printf("remove test \n");
+    return filesys_remove(name);
 }
 
-
 int open(const char *name) {
-  printf("open test \n");
-  check_address(name);
-  struct file *file_obj = filesys_open(name); 
+    printf("open test \n");
+    printf("주소 체크 실패 (open-null 테스트용) \n");
+    check_address(name);
+    struct file *file_obj = filesys_open(name);
+    printf("열린 파일 주소 : %p\n", file_obj);
+    if (file_obj == NULL) {
+        printf("-1");
+        return -1;
+    }
 
-  if (file_obj == NULL) {
-    return -1;
-  }
+    int fd = add_file_to_fdt(file_obj);
 
-  int fd = add_file_to_fdt(file_obj);
+    if (fd == -1) {
+        file_close(file_obj);
+    }
 
-  if (fd == -1) {
-    file_close(file_obj);
-  }
-
-  return fd;
+    return fd;
 }
 
 /* console 출력하는 함수 */
 int write(int fd, const void *buffer, unsigned size) {
-  if (fd == STDOUT_FILENO)
-    putbuf(buffer, size);
-  return size;
+    if (fd == STDOUT_FILENO)
+        putbuf(buffer, size);
+    return size;
 }
 
 // ### fdt functions
 
 // 파일을 현재스레드의 fdt에 추가
 int add_file_to_fdt(struct file *file) {
-  struct thread *t = thread_current();
-  struct file **fdt = t->fdt;
-  int fd = t->fd_idx;
+    struct thread *t = thread_current();
+    struct file **fdt = t->fdt;
+    int fd = t->fd_idx;
 
-  while (t->fdt[fd] != NULL && fd < FDT_COUNT_LIMIT) {
-    fd++;
-  }
+    printf("fd : %d\n", fd);
+    while (t->fdt[fd] != NULL && fd < FDT_COUNT_LIMIT) {
+        fd++;
+    }
+    if (fd >= FDT_COUNT_LIMIT) {
+        return -1;
+    }
 
-  if (fd >= FDT_COUNT_LIMIT) {
-    return -1;
-  }
-  t->fd_idx = fd;
-  fdt[fd] = file;
-  return fd;
+    t->fd_idx = fd;
+    fdt[fd] = file;
+    
+    // filesize(fd);
+    return fd;
 }
+
+// fd (첫 번째 인자)로서 열려 있는 파일의 크기가 몇바이트인지 반환하는 함수
+int filesize(int fd) {
+    struct thread *t = thread_current(); 
+    if (fd < 0 || fd >= FDT_COUNT_LIMIT || t->fdt[fd] == NULL) {
+        return -1; // 유효하지 않은 파일 디스크립터
+    }
+    
+    struct file *file = t->fdt[fd]; 
+    int size = file_length(file); 
+    printf("fd 의 파일의 크기 : %d\n",size);
+
+    return size; 
+}
+
 

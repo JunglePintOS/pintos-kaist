@@ -1,0 +1,18 @@
+{
+  "configurations": [
+    {
+      "name": "Pintos",
+      "includePath": [
+        "${workspaceFolder}/include",
+        "${workspaceFolder}/include/lib",
+        "${workspaceFolder}/include/lib/kernel",
+        "${workspaceFolder}/include/lib/user",
+        "${workspaceFolder}/include/threads",
+        "${workspaceFolder}/include/filesys",
+        "${workspaceFolder}/include/userprog",
+        "${workspaceFolder}/include/vm"
+      ]
+    }
+  ],
+  "version": 4
+}
