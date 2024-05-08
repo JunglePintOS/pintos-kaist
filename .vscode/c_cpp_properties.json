@@ -10,7 +10,8 @@
         "${workspaceFolder}/include/threads",
         "${workspaceFolder}/include/filesys",
         "${workspaceFolder}/include/userprog",
-        "${workspaceFolder}/include/vm"
+        "${workspaceFolder}/include/vm",
+        "${workspaceFolder}/tests"
       ]
     }
   ],

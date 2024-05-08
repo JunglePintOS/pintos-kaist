@@ -320,10 +320,10 @@ tid_t thread_create(const char *name, int priority, thread_func *function, void 
     if (t->fdt == NULL) {
         return TID_ERROR;
     }
-    t->fd_idx = 2;
-    t->fdt[0] = 1;  //stdin
-    t->fdt[1] = 2;  //stdout
-
+    t->fd_idx = 3;
+    t->fdt[0] = "stdin";
+    t->fdt[1] = "stdout";
+    t->fdt[2] = "stderr";
     /* 준비 큐에 추가. */
     /* Add to run queue. */
     thread_unblock(t);

@@ -96,6 +96,9 @@ void syscall_handler(struct intr_frame *f UNUSED) {
         case SYS_FILESIZE:
             f->R.rax = filesize(f->R.rdi);
             break;
+        case SYS_READ:
+            f->R.rax = read(f->R.rdi,f->R.rsi,f->R.rdx);
+            break;
         default:
             thread_exit();
             break;
@@ -203,4 +206,36 @@ int filesize(int fd) {
     return size; 
 }
 
+// buffer 안에 fd로 열린 파일로 size 바이트를 읽음
+int read(int fd, void *buffer, unsigned size) {
+    printf("read test\n");
+    struct thread *t = thread_current(); 
+    struct file *file = t->fdt[fd];
+    printf("buffer 주소 : %p\n", buffer);
 
+    // 버퍼가 유효한 주소인지 체크
+    check_address(buffer);
+    printf("buffer 유효한 주소 입니다 \n");
+
+    // fd가 0이면 (stdin) input_getc()를 사용해서 키보드 입력을 받아옴
+    if (fd == 0) {
+        input_getc();
+    }
+
+    // 파일을 읽을 수 없는 케이스의 경우 -1 반환 , (fd값이 1인 경우 stout)
+    if (fd < 0 || fd >= FDT_COUNT_LIMIT || t->fdt[fd] == NULL || fd == 1) {
+        return -1; // 유효하지 않은 파일 디스크립터
+    }
+
+    // 구현 필요
+    // lock을 이용해서 커널이 파일을 읽는 동안 다른 스레드가 이 파일을 읽는 것을 막아야함
+    // filesys_lock 선언(filesys.h에 만들기)
+    // syscall_init에도 lock 초기화함수 lock_init을 선언  
+   
+    // 그 외는 파일 객체 찾고, size 바이트 크기 만큼 파일을 읽어서 버퍼에 넣어준다.
+    off_t read_count = file_read (file, buffer, size);
+    printf("fd : %d buffer : %d size %d\n",fd, buffer, size);
+    printf("fd : %d buffer : %s size %d\n",fd, buffer, size);
+
+    return read_count;
+}
