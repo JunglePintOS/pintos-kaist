@@ -99,6 +99,9 @@ void syscall_handler(struct intr_frame *f UNUSED) {
         case SYS_READ:
             f->R.rax = read(f->R.rdi,f->R.rsi,f->R.rdx);
             break;
+        case SYS_SEEK:
+            seek(f->R.rdi,f->R.rsi);
+            break;
         default:
             thread_exit();
             break;
@@ -238,4 +241,11 @@ int read(int fd, void *buffer, unsigned size) {
     printf("fd : %d buffer : %s size %d\n",fd, buffer, size);
 
     return read_count;
+}
+
+// fd에서 읽거나 쓸 다음 바이트의 position을 변경해주는 함수
+void seek (int fd, unsigned position) {
+    struct thread *t = thread_current(); 
+    struct file *file = t->fdt[fd];
+    file_seek (file, position);
 }
