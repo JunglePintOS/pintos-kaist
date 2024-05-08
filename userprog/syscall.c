@@ -22,6 +22,7 @@ int write(int fd, const void *buffer, unsigned size);
 int open(const char *name);
 int add_file_to_fdt(struct file *file);
 int filesize(int fd);
+unsigned tell(int fd);
 
 /* 시스템 호출.
  *
@@ -43,6 +44,10 @@ int filesize(int fd);
 #define MSR_STAR 0xc0000081 /* 세그먼트 선택자 MSR */       /* Segment selector msr */
 #define MSR_LSTAR 0xc0000082 /* Long mode SYSCALL target */ /* Long mode SYSCALL target */
 #define MSR_SYSCALL_MASK 0xc0000084 /* eflags용 마스크 */   /* Mask for the eflags */
+
+// check fd index
+#define IS_UNVALID_FD(fd_index) (fd < fd_index || fd >= FDT_COUNT_LIMIT || t->fdt[fd] == NULL)
+
 
 void
 syscall_init (void) {
@@ -101,6 +106,9 @@ void syscall_handler(struct intr_frame *f UNUSED) {
             break;
         case SYS_SEEK:
             seek(f->R.rdi,f->R.rsi);
+            break;
+        case SYS_TELL:
+            f->R.rax = tell(f->R.rdi);
             break;
         default:
             thread_exit();
@@ -248,4 +256,11 @@ void seek (int fd, unsigned position) {
     struct thread *t = thread_current(); 
     struct file *file = t->fdt[fd];
     file_seek (file, position);
+}
+
+unsigned tell (int fd) {
+    printf("tell\n");
+    struct thread *t = thread_current(); 
+    struct file *file = t->fdt[fd];
+    return file_tell(file);
 }
