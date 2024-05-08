@@ -14,14 +14,17 @@
 
 void syscall_entry(void);
 void syscall_handler(struct intr_frame *);
+void check_address(void *addr);
 void halt();
 void exit(int status);
 bool create(const char *name, off_t initial_size);
 bool remove(const char *name);
-int write(int fd, const void *buffer, unsigned size);
 int open(const char *name);
+int write(int fd, const void *buffer, unsigned size);
 int add_file_to_fdt(struct file *file);
 int filesize(int fd);
+int read(int fd, void *buffer, unsigned size);
+void seek (int fd, unsigned position);
 unsigned tell(int fd);
 void close (int fd);
 
@@ -72,7 +75,7 @@ syscall_init (void) {
 void syscall_handler(struct intr_frame *f UNUSED) {
     // todo: 구현을 여기에 하세요
     // TODO: Your implementation goes here.
-    printf("system call!\n");
+    printf("\nsystem call!\n");
 
     int sys_num = f->R.rax;
     printf("sys_num : %d\n", sys_num);
@@ -97,7 +100,6 @@ void syscall_handler(struct intr_frame *f UNUSED) {
             break;
         case SYS_OPEN:
             f->R.rax = open(f->R.rdi);
-            printf("open sys call의 rax 반환값 : %d \n", f->R.rax);
             break;
         case SYS_FILESIZE:
             f->R.rax = filesize(f->R.rdi);
@@ -124,6 +126,7 @@ void syscall_handler(struct intr_frame *f UNUSED) {
 
 /* 주소 유효성 검수하는 함수 */
 void check_address(void *addr) {
+    printf("check_address: %p\n", addr);
     struct thread *t = thread_current();
 
     if (addr == NULL || !is_user_vaddr(addr))  // 사용자 영역 주소인지 확인
@@ -133,38 +136,37 @@ void check_address(void *addr) {
 }
 
 void halt() {
-    printf("halt test \n");
+    printf("syscall halt\n");
     power_off();
 }
 
 /* 현재 실행중인 스레드를 종료하는 함수 */
 void exit(int status) {
     // 추후 종료 상태 코드로 변경하는 기능 추가할것.
-    printf("exit test \n");
+    printf("syscall exit \n");
     struct thread *t = thread_current();
     thread_exit();
 }
 
 bool create(const char *name, off_t initial_size) {
     check_address(name);
-    printf("create test : name %s \n", name);
+    printf("syscall create: name %s \n", name);
     return filesys_create(name, initial_size);
 }
 
 bool remove(const char *name) {
     check_address(name);
-    printf("remove test \n");
+    printf("syscall remove\n");
     return filesys_remove(name);
 }
 
 int open(const char *name) {
-    printf("open test \n");
-    printf("주소 체크 실패 (open-null 테스트용) \n");
+    printf("syscall open\n");
     check_address(name);
     struct file *file_obj = filesys_open(name);
     printf("열린 파일 주소 : %p\n", file_obj);
     if (file_obj == NULL) {
-        printf("-1");
+        printf("file_obj == NULL\n");
         return -1;
     }
 
@@ -179,6 +181,7 @@ int open(const char *name) {
 
 /* console 출력하는 함수 */
 int write(int fd, const void *buffer, unsigned size) {
+    printf("syscall write\n");
     if (fd == STDOUT_FILENO)
         putbuf(buffer, size);
     return size;
@@ -209,12 +212,13 @@ int add_file_to_fdt(struct file *file) {
 
 // fd (첫 번째 인자)로서 열려 있는 파일의 크기가 몇바이트인지 반환하는 함수
 int filesize(int fd) {
+    printf("syscall filesize\n");
     struct thread *t = thread_current(); 
-    if (fd < 0 || fd >= FDT_COUNT_LIMIT || t->fdt[fd] == NULL) {
+    struct file *file = t->fdt[fd]; 
+    if (fd < 0 || fd >= FDT_COUNT_LIMIT || file == NULL) {
         return -1; // 유효하지 않은 파일 디스크립터
     }
     
-    struct file *file = t->fdt[fd]; 
     int size = file_length(file); 
     printf("fd 의 파일의 크기 : %d\n",size);
 
@@ -223,7 +227,7 @@ int filesize(int fd) {
 
 // buffer 안에 fd로 열린 파일로 size 바이트를 읽음
 int read(int fd, void *buffer, unsigned size) {
-    printf("read test\n");
+    printf("syscall read\n");
     struct thread *t = thread_current(); 
     struct file *file = t->fdt[fd];
     printf("buffer 주소 : %p\n", buffer);
@@ -238,7 +242,7 @@ int read(int fd, void *buffer, unsigned size) {
     }
 
     // 파일을 읽을 수 없는 케이스의 경우 -1 반환 , (fd값이 1인 경우 stout)
-    if (fd < 0 || fd >= FDT_COUNT_LIMIT || t->fdt[fd] == NULL || fd == 1) {
+    if (fd < 0 || fd >= FDT_COUNT_LIMIT || file == NULL || fd == 1) {
         return -1; // 유효하지 않은 파일 디스크립터
     }
 
@@ -257,20 +261,27 @@ int read(int fd, void *buffer, unsigned size) {
 
 // fd에서 읽거나 쓸 다음 바이트의 position을 변경해주는 함수
 void seek (int fd, unsigned position) {
+    printf("syscall seek\n");
     struct thread *t = thread_current(); 
     struct file *file = t->fdt[fd];
+
+    // 파일 디스크립터의 유효성을 검증
+    if (fd < 0 || fd >= FDT_COUNT_LIMIT || t->fdt[fd] == NULL) {
+        exit(-1);  // 유효하지 않은 파일 디스크립터로 인한 종료
+    }
+
     file_seek (file, position);
 }
 
 unsigned tell (int fd) {
-    printf("tell\n");
+    printf("syscall tell\n");
     struct thread *t = thread_current(); 
     struct file *file = t->fdt[fd];
     return file_tell(file);
 }
 
 void close (int fd) {
-    printf("close\n");
+    printf("syscall close\n");
     struct thread *t = thread_current(); 
     struct file *file = t->fdt[fd];
 
