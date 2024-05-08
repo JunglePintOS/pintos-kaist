@@ -23,6 +23,7 @@ int open(const char *name);
 int add_file_to_fdt(struct file *file);
 int filesize(int fd);
 unsigned tell(int fd);
+void close (int fd);
 
 /* 시스템 호출.
  *
@@ -109,6 +110,9 @@ void syscall_handler(struct intr_frame *f UNUSED) {
             break;
         case SYS_TELL:
             f->R.rax = tell(f->R.rdi);
+            break;
+        case SYS_CLOSE:
+            close(f->R.rdi);
             break;
         default:
             thread_exit();
@@ -263,4 +267,12 @@ unsigned tell (int fd) {
     struct thread *t = thread_current(); 
     struct file *file = t->fdt[fd];
     return file_tell(file);
+}
+
+void close (int fd) {
+    printf("close\n");
+    struct thread *t = thread_current(); 
+    struct file *file = t->fdt[fd];
+
+    file_close(file);
 }
