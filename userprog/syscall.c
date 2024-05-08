@@ -15,6 +15,7 @@
 void syscall_entry(void);
 void syscall_handler(struct intr_frame *);
 void check_address(void *addr);
+struct file *fd_to_fileptr(int fd);
 void halt();
 void exit(int status);
 bool create(const char *name, off_t initial_size);
@@ -137,11 +138,13 @@ void check_address(void *addr) {
 
 /* fd로 file 주소를 반환하는 함수 */
 struct file *fd_to_fileptr(int fd) {
-  if (fd < 0 || fd >= FDT_COUNT_LIMIT) {
-    return -1; // exit(-1) ??? 뭘해야하지
-  }
   struct thread *t = thread_current();
   struct file *file = t->fdt[fd];
+
+  // fd 값 검증
+  if (fd < 0 || fd >= FDT_COUNT_LIMIT || file == NULL) {
+    return NULL; // 유효하지 않은 파일 디스크립터
+  }
 
   return file;
 }
@@ -224,10 +227,11 @@ int add_file_to_fdt(struct file *file) {
 // fd (첫 번째 인자)로서 열려 있는 파일의 크기가 몇바이트인지 반환하는 함수
 int filesize(int fd) {
     printf("syscall filesize\n");
-    struct thread *t = thread_current(); 
-    struct file *file = t->fdt[fd]; 
-    if (fd < 0 || fd >= FDT_COUNT_LIMIT || file == NULL) {
-        return -1; // 유효하지 않은 파일 디스크립터
+    struct file *file = fd_to_fileptr(fd);
+
+    // 유효하지 않은 fd
+    if (file == NULL) {
+      return - 1;
     }
     
     int size = file_length(file); 
@@ -239,8 +243,7 @@ int filesize(int fd) {
 // buffer 안에 fd로 열린 파일로 size 바이트를 읽음
 int read(int fd, void *buffer, unsigned size) {
     printf("syscall read\n");
-    struct thread *t = thread_current(); 
-    struct file *file = t->fdt[fd];
+    struct file *file = fd_to_fileptr(fd);
     printf("buffer 주소 : %p\n", buffer);
 
     // 버퍼가 유효한 주소인지 체크
@@ -253,7 +256,7 @@ int read(int fd, void *buffer, unsigned size) {
     }
 
     // 파일을 읽을 수 없는 케이스의 경우 -1 반환 , (fd값이 1인 경우 stout)
-    if (fd < 0 || fd >= FDT_COUNT_LIMIT || file == NULL || fd == 1) {
+    if (file == NULL || fd == 1) {
         return -1; // 유효하지 않은 파일 디스크립터
     }
 
@@ -273,12 +276,11 @@ int read(int fd, void *buffer, unsigned size) {
 // fd에서 읽거나 쓸 다음 바이트의 position을 변경해주는 함수
 void seek (int fd, unsigned position) {
     printf("syscall seek\n");
-    struct thread *t = thread_current(); 
-    struct file *file = t->fdt[fd];
+    struct file *file = fd_to_fileptr(fd);
 
     // 파일 디스크립터의 유효성을 검증
-    if (fd < 0 || fd >= FDT_COUNT_LIMIT || file == NULL) {
-        exit(-1);  // 유효하지 않은 파일 디스크립터로 인한 종료
+    if (file == NULL) {
+        return -1;  // 유효하지 않은 파일 디스크립터로 인한 종료
     }
 
     file_seek (file, position);
@@ -286,15 +288,20 @@ void seek (int fd, unsigned position) {
 
 unsigned tell (int fd) {
     printf("syscall tell\n");
-    struct thread *t = thread_current(); 
-    struct file *file = t->fdt[fd];
+    struct file *file = fd_to_fileptr(fd);
+
+    if (file == NULL) {
+      return -1;
+    }
     return file_tell(file);
 }
 
 void close (int fd) {
     printf("syscall close\n");
-    struct thread *t = thread_current(); 
-    struct file *file = t->fdt[fd];
+    struct file *file = fd_to_fileptr(fd);
+    if (file == NULL) {
+      return -1;
+    }
 
     file_close(file);
 }
