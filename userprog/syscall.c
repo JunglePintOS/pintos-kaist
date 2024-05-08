@@ -135,6 +135,17 @@ void check_address(void *addr) {
         exit(-1);
 }
 
+/* fd로 file 주소를 반환하는 함수 */
+struct file *fd_to_fileptr(int fd) {
+  if (fd < 0 || fd >= FDT_COUNT_LIMIT) {
+    return -1; // exit(-1) ??? 뭘해야하지
+  }
+  struct thread *t = thread_current();
+  struct file *file = t->fdt[fd];
+
+  return file;
+}
+
 void halt() {
     printf("syscall halt\n");
     power_off();
@@ -266,7 +277,7 @@ void seek (int fd, unsigned position) {
     struct file *file = t->fdt[fd];
 
     // 파일 디스크립터의 유효성을 검증
-    if (fd < 0 || fd >= FDT_COUNT_LIMIT || t->fdt[fd] == NULL) {
+    if (fd < 0 || fd >= FDT_COUNT_LIMIT || file == NULL) {
         exit(-1);  // 유효하지 않은 파일 디스크립터로 인한 종료
     }
 
