@@ -11,7 +11,9 @@
         "${workspaceFolder}/include/filesys",
         "${workspaceFolder}/include/userprog",
         "${workspaceFolder}/include/vm",
-        "${workspaceFolder}/tests"
+        "${workspaceFolder}/tests",
+        "${workspaceFolder}/tests/userprog",
+        "${workspaceFolder}/**"
       ]
     }
   ],
