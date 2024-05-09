@@ -126,8 +126,6 @@ void syscall_handler(struct intr_frame *f UNUSED) {
             thread_exit();
             break;
     }
-
-    // thread_exit();
 }
 
 /* 주소 유효성 검수하는 함수 */
@@ -230,6 +228,12 @@ int add_file_to_fdt(struct file *file) {
     return fd;
 }
 
+void delete_file_from_fdt(int fd) {
+    //fdt 에서 해당 fd값의 엔트리 null로 초기화
+    struct thread *t = thread_current();
+    t->fdt[fd] = NULL;
+}
+
 // fd (첫 번째 인자)로서 열려 있는 파일의 크기가 몇바이트인지 반환하는 함수
 int filesize(int fd) {
     printf("syscall filesize\n");
@@ -305,11 +309,13 @@ unsigned tell (int fd) {
 void close (int fd) {
     printf("syscall close\n");
     struct file *file = fd_to_fileptr(fd);
+
     if (file == NULL) {
       return -1;
     }
 
     file_close(file);
+    delete_file_from_fdt(fd);
 }
 
 pid_t fork (const char *thread_name) {
