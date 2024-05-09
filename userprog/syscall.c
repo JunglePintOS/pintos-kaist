@@ -318,11 +318,10 @@ pid_t fork (const char *thread_name) {
 
 int wait (tid_t pid)
 {
-    /*자식 프로세스가 종료 될 때까지 대기*/
+    /* 자식 프로세스가 종료 될 때까지 대기 */
     // 커널이 부모에게 자식의 종료 상태를 반환해줘야함
     // 자식의 종료 상태(exit status)를 가져옴
     // 만약 pid (자식 프로세스)가 아직 살아있으면, 종료 될 때 까지 기다립니다.
     //  종료가 되면 그 프로세스가 exit 함수로 전달해준 상태(exit status)를 반환합니다. 
-
 	process_wait(pid);
 }

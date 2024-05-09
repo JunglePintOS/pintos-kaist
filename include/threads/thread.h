@@ -4,6 +4,7 @@
 #include <debug.h>
 #include <list.h>
 #include <stdint.h>
+#include <synch.h>
 #include "threads/interrupt.h"
 
 // project2 syscall fdt
@@ -159,6 +160,14 @@ struct thread {
 	// project 2: fdt
 	struct file **fdt; 
 	int fd_idx;
+
+	// project 2: system call
+	int exit_status;
+	struct list child_list;
+	struct list_elem child_elem;
+	struct semaphore wait_sema;
+	struct semaphore free_sema;
+	struct file *running;
 
 #ifdef USERPROG
 	/* Owned by userprog/process.c. */

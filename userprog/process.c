@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "threads/synch.h"
 #include "filesys/directory.h"
 #include "filesys/file.h"
 #include "filesys/filesys.h"
@@ -314,17 +315,43 @@ int process_wait(tid_t child_tid UNUSED) {
     /* XXX: Hint) The pintos exit if process_wait (initd), we recommend you
      * XXX:       to add infinite loop here before
      * XXX:       implementing the process_wait. */
-    for (int i = 0; i < 100000000; i++) {
-    }
-    return -1;
+
+
+    struct thread *t = thread_current();
+    struct thread *child = get_child_with_pid(child_tid);
+
+    if(child == NULL)
+        return -1;
+
+    sema_down(&child -> wait_sema);
+    int exit_status = child -> exit_status;
+    list_remove(&child -> child_elem);
+    sema_up(&child -> free_sema);
+
+    return exit_status;
+
+    // 자식 프로세스가 종료되기를 기다림 
+    // 자식 프로세스의 pid값을 통해 자식 프로세스 디스크립터를 검색
+
+    // if (child_tid != NULL) {  
+        // return exit_status; // 종료 상태를 반환
+    // }
+    // sema down (wait sema)- wait 리스트에 부모 프로세스 추가 (자식 프로세스가 종료 될 때까지)
+    // 자식 프로세스의 종료를 알림 
+    // wait list 에서 remove 
+    // sema_up (exit_sema) 
+    // 종료가 되면 그 프로세스가 exit 함수로 전달해준 상태(exit status)를 반환합니다. 
+    // 비 정상적으로 종료(kill()) 되었을 경우 , 
+    // 커널에 의해서 종료된다면 (e.g exception에 의해서 죽는 경우) -1 리턴
 }
 
 /* 프로세스를 종료합니다. 이 함수는 thread_exit()에 의해 호출됩니다. */
+/* 프로세스를 종료해야 할 시점에서 열린 파일을 모두 close */
 /* Exit the process. This function is called by thread_exit (). */
 void process_exit(void) {
     struct thread *curr = thread_current();
     /* TODO: 여기에 코드를 작성하세요.
-     * TODO: 프로세스 종료 메시지를 구현하세요 (참조:
+     * TODO: 프로세스 종료 메시지를 구현하세요 (참조:페이지 디렉터리를 파괴하고
      * TODO: project2/process_termination.html).
      * TODO: 여기서 프로세스 자원 정리를 구현하는 것이 좋습니다. */
     /* TODO: Your code goes here.
@@ -332,6 +359,22 @@ void process_exit(void) {
      * TODO: project2/process_termination.html).
      * TODO: We recommend you to implement process resource cleanup here. */
 
+
+    // 자식 프로세스의 종료를 대기 중인 부모 프로세스에게 알림 (세마포어 이용)   
+    // 유저 프로세스가 종료되면 부모 프로세스 대기 상태 이탈 후 진행  
+    // 프로세스 디스크립터에 프로세스 종료를 알림 (종료 플래그 설정)
+    for (int fd = 0; fd < FDT_COUNT_LIMIT; fd++){
+        close(fd);
+    }
+    // 메모리 누수 방지
+    palloc_free_page(curr->fdt);
+    // 실행중에 수정 못하도록
+    file_close(curr->running);
+
+    sema_up(&curr->wait_sema); // 기다리고 있는 부모 thread에게 signal 보냄
+    sema_down(&curr->free_sema); // 부모의 exit_status가 정확히 전달되었는지 확인
+
+    // 추후 프로세스 종료 메시지 구현할 것
     process_cleanup();
 }
 
@@ -345,7 +388,7 @@ static void process_cleanup(void) {
 #endif
 
     uint64_t *pml4;
-    /* 현재 프로세스의 페이지 디렉터리를 파괴하고 커널 전용 페이지 디렉터리로 다시 전환합니다. */
+    /* 현재 프로세스의  커널 전용 페이지 디렉터리로 다시 전환합니다. */
     /* Destroy the current process's page directory and switch back
      * to the kernel-only page directory. */
     pml4 = curr->pml4;
@@ -463,12 +506,12 @@ static bool load(const char *file_name, struct intr_frame *if_) {
 
     /* 페이지 디렉터리를 할당하고 활성화합니다. */
     /* Allocate and activate page directory. */
-    t->pml4 = pml4_create();
+    t->pml4 = pml4_create(); // 페이지 디렉토리 생성
     if (t->pml4 == NULL)
         goto done;
-    process_activate(thread_current());
+    process_activate(thread_current()); // 페이지 테이블 활성화
 
-    /* 실행 파일을 엽니다. */
+    /* (프로그램 파일) 실행 파일을 엽니다. */
     /* Open executable file. */
     file = filesys_open(file_name);
     if (file == NULL) {
