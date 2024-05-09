@@ -33,6 +33,7 @@ pid_t fork (const char *thread_name);
 unsigned tell(int fd);
 void close (int fd);
 int wait (tid_t pid);
+int exec(const char *cmd_line);
 
 /* 시스템 호출.
  *
@@ -100,7 +101,7 @@ void syscall_handler(struct intr_frame *f UNUSED) {
             f->R.rax = fork(f->R.rdi);
             break;
         case SYS_EXEC:
-            
+            f->R.rax = exec(f->R.rdi);
             break;
         case SYS_WAIT:
             f->R.rax = wait(f->R.rdi);
@@ -337,4 +338,17 @@ int wait (tid_t pid)
     // 만약 pid (자식 프로세스)가 아직 살아있으면, 종료 될 때 까지 기다립니다.
     //  종료가 되면 그 프로세스가 exit 함수로 전달해준 상태(exit status)를 반환합니다. 
 	return process_wait(pid);
+}
+
+int exec (const char *cmd_line) {
+    printf("exec test\n");
+    char *fn_copy;
+
+    off_t size = strlen(cmd_line) + 1;
+    fn_copy = palloc_get_page(0);
+    if (fn_copy == NULL)
+        return -1;
+    strlcpy(fn_copy, cmd_line, size);  
+    
+    return process_exec(cmd_line);
 }
