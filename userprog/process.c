@@ -29,6 +29,7 @@ static void process_cleanup(void);
 static bool load(const char *file_name, struct intr_frame *if_);
 static void initd(void *f_name);
 static void __do_fork(void *);
+struct thread *get_child_with_pid(tid_t tid);
 
 /* initd와 다른 프로세스를 위한 일반 프로세스 초기화 함수 */
 /* General process initializer for initd and other process. */
@@ -91,6 +92,19 @@ static void initd(void *f_name) {
     NOT_REACHED();
 }
 
+struct thread *get_child_with_pid(tid_t tid) {
+    struct thread *parent = thread_current();
+    struct list_elem *e;
+    
+    for ( e = list_begin(&parent->child_list); e != list_end(&parent->child_list); e = list_next(e)) {
+        struct thread *child = list_entry(e, struct thread, child_elem);
+        if ( child->tid == tid ){
+            return child;
+        }
+    }
+    return NULL;
+}
+
 //  현재 프로세스(스레드)를 복제하여 새로운 프로세스(스레드)를 생성하고,
 // 생성된 새 프로세스의 스레드 ID를 반환합니다. 만약 스레드 생성에 실패할 경우 TID_ERROR를 반환
 /* Clones the current process as `name`. Returns the new process's thread id, or
@@ -111,7 +125,6 @@ tid_t process_fork(const char *name, struct intr_frame *if_ UNUSED) {
         return TID_ERROR;
     
     return tid;
-
 }
 
 #ifndef VM

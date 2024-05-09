@@ -324,6 +324,11 @@ tid_t thread_create(const char *name, int priority, thread_func *function, void 
     t->fdt[0] = "stdin";
     t->fdt[1] = "stdout";
     t->fdt[2] = "stderr";
+
+    struct thread *parent = (struct thread *) aux;
+    if (is_thread(parent)) {
+        list_push_back(&parent->child_list, &t->child_elem);
+    }
     /* 준비 큐에 추가. */
     /* Add to run queue. */
     thread_unblock(t);
@@ -613,6 +618,13 @@ static void init_thread(struct thread *t, const char *name, int priority) {
     t->init_priority = priority;
     t->wait_on_lock = NULL;
     list_init (&t->donations);
+
+    // project 2: system call
+    list_init (&t->child_list);
+    sema_init (&t->wait_sema, 0);
+    sema_init (&t->free_sema, 0);
+    sema_init (&t->fork_sema, 0);
+
     t->magic = THREAD_MAGIC;
 }
 
