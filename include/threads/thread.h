@@ -168,6 +168,11 @@ struct thread {
 	struct semaphore wait_sema;
 	struct semaphore free_sema;
 	struct file *running;
+	
+	// project 2: fork
+	struct intr_frame parent_if;
+	struct semaphore fork_sema;
+
 
 #ifdef USERPROG
 	/* Owned by userprog/process.c. */
