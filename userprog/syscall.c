@@ -96,7 +96,7 @@ void syscall_handler(struct intr_frame *f UNUSED) {
             exit(f->R.rdi);
             break;
         case SYS_FORK:
-            fork(f->R.rdi);
+            f->R.rax = fork(f->R.rdi);
             break;
         case SYS_CREATE:
             f->R.rax = create(f->R.rdi, f->R.rsi);
