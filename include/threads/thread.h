@@ -4,7 +4,7 @@
 #include <debug.h>
 #include <list.h>
 #include <stdint.h>
-#include <synch.h>
+#include "threads/synch.h"
 #include "threads/interrupt.h"
 
 // project2 syscall fdt
