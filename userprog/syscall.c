@@ -34,7 +34,6 @@ unsigned tell(int fd);
 void close (int fd);
 int wait (tid_t pid);
 
-
 /* 시스템 호출.
  *
  * 이전에 시스템 호출 서비스는 인터럽트 핸들러에서 처리되었습니다
@@ -101,10 +100,10 @@ void syscall_handler(struct intr_frame *f UNUSED) {
             f->R.rax = fork(f->R.rdi);
             break;
         case SYS_EXEC:
-
+            
             break;
         case SYS_WAIT:
-
+            f->R.rax = wait(f->R.rdi);
             break;
         case SYS_CREATE:
             f->R.rax = create(f->R.rdi, f->R.rsi);
