@@ -2,6 +2,7 @@
 
 #include <stdio.h>
 #include <syscall-nr.h>
+#include <user/syscall.h>
 
 #include "filesys/file.h"
 #include "filesys/filesys.h"
@@ -11,6 +12,8 @@
 #include "threads/loader.h"
 #include "threads/thread.h"
 #include "userprog/gdt.h"
+#include "userprog/process.h"
+
 
 void syscall_entry(void);
 void syscall_handler(struct intr_frame *);
@@ -18,7 +21,7 @@ void check_address(void *addr);
 struct file *fd_to_fileptr(int fd);
 void halt();
 void exit(int status);
-bool create(const char *name, off_t initial_size);
+bool create(const char *name, unsigned initial_size);
 bool remove(const char *name);
 int open(const char *name);
 int write(int fd, const void *buffer, unsigned size);
@@ -26,6 +29,7 @@ int add_file_to_fdt(struct file *file);
 int filesize(int fd);
 int read(int fd, void *buffer, unsigned size);
 void seek (int fd, unsigned position);
+pid_t fork (const char *thread_name);
 unsigned tell(int fd);
 void close (int fd);
 
@@ -92,6 +96,7 @@ void syscall_handler(struct intr_frame *f UNUSED) {
             exit(f->R.rdi);
             break;
         case SYS_FORK:
+            fork(f->R.rdi);
             break;
         case SYS_CREATE:
             f->R.rax = create(f->R.rdi, f->R.rsi);
@@ -162,7 +167,7 @@ void exit(int status) {
     thread_exit();
 }
 
-bool create(const char *name, off_t initial_size) {
+bool create(const char *name, unsigned initial_size) {
     check_address(name);
     printf("syscall create: name %s \n", name);
     return filesys_create(name, initial_size);
@@ -196,6 +201,7 @@ int open(const char *name) {
 /* console 출력하는 함수 */
 int write(int fd, const void *buffer, unsigned size) {
     printf("syscall write\n");
+    check_address(buffer);
     if (fd == STDOUT_FILENO)
         putbuf(buffer, size);
     return size;
@@ -304,4 +310,19 @@ void close (int fd) {
     }
 
     file_close(file);
+}
+
+pid_t fork (const char *thread_name) {
+    return process_fork(thread_name, NULL);
+}
+
+int wait (tid_t pid)
+{
+    /*자식 프로세스가 종료 될 때까지 대기*/
+    // 커널이 부모에게 자식의 종료 상태를 반환해줘야함
+    // 자식의 종료 상태(exit status)를 가져옴
+    // 만약 pid (자식 프로세스)가 아직 살아있으면, 종료 될 때 까지 기다립니다.
+    //  종료가 되면 그 프로세스가 exit 함수로 전달해준 상태(exit status)를 반환합니다. 
+
+	process_wait(pid);
 }
