@@ -35,6 +35,7 @@ void close (int fd);
 int wait (tid_t pid);
 int exec(const char *cmd_line);
 
+static struct lock filesys_lock;
 /* 시스템 호출.
  *
  * 이전에 시스템 호출 서비스는 인터럽트 핸들러에서 처리되었습니다
@@ -74,6 +75,8 @@ syscall_init (void) {
 	 * mode stack. Therefore, we masked the FLAG_FL. */
 	write_msr(MSR_SYSCALL_MASK,
 			FLAG_IF | FLAG_TF | FLAG_DF | FLAG_IOPL | FLAG_AC | FLAG_NT);
+
+    lock_init(&filesys_lock);
 }
 
 
@@ -209,7 +212,9 @@ int write(int fd, const void *buffer, unsigned size) {
     printf("syscall write\n");
     check_address(buffer);
     if (fd == STDOUT_FILENO)
+        lock_acquire(&filesys_lock);
         putbuf(buffer, size);
+        lock_release(&filesys_lock);
     return size;
 }
 
@@ -280,11 +285,14 @@ int read(int fd, void *buffer, unsigned size) {
 
     // 구현 필요
     // lock을 이용해서 커널이 파일을 읽는 동안 다른 스레드가 이 파일을 읽는 것을 막아야함
-    // filesys_lock 선언(filesys.h에 만들기)
+
+    // filesys_lock 선언(syscall.h에 만들기)
     // syscall_init에도 lock 초기화함수 lock_init을 선언  
-   
+    lock_acquire(&filesys_lock);
     // 그 외는 파일 객체 찾고, size 바이트 크기 만큼 파일을 읽어서 버퍼에 넣어준다.
     off_t read_count = file_read (file, buffer, size);
+    lock_release(&filesys_lock);
+
     printf("fd : %d buffer : %d size %d\n",fd, buffer, size);
     printf("fd : %d buffer : %s size %d\n",fd, buffer, size);
 
