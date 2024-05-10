@@ -32,7 +32,7 @@ void seek (int fd, unsigned position);
 pid_t fork (const char *thread_name);
 unsigned tell(int fd);
 void close (int fd);
-int wait (tid_t pid);
+int wait (pid_t pid);
 int exec(const char *cmd_line);
 
 static struct lock filesys_lock;
@@ -338,7 +338,7 @@ pid_t fork (const char *thread_name) {
     return process_fork(thread_name, NULL);
 }
 
-int wait (tid_t pid)
+int wait (pid_t pid)
 {
     /* 자식 프로세스가 종료 될 때까지 대기 */
     // 커널이 부모에게 자식의 종료 상태를 반환해줘야함
