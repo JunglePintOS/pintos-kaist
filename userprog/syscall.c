@@ -213,10 +213,11 @@ int open(const char *name) {
 /* console 출력하는 함수 */
 int write(int fd, const void *buffer, unsigned size) {
     check_address(buffer);
-    if (fd == STDOUT_FILENO)
+    if (fd == STDOUT_FILENO) {
         lock_acquire(&filesys_lock);
         putbuf(buffer, size);
         lock_release(&filesys_lock);
+    }
     return size;
 }
 
