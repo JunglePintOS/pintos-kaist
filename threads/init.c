@@ -92,10 +92,10 @@ int main(void) {
 
     /* 메모리 시스템을 초기화합니다. */
     /* Initialize memory system. */
-    mem_end = palloc_init();
-    malloc_init();
-    paging_init(mem_end);
-
+    mem_end = palloc_init();        // 메모리 크기 결정
+    malloc_init();  
+    paging_init(mem_end);           // 메모리 initialize
+    
 #ifdef USERPROG
     tss_init();
     gdt_init();
