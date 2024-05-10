@@ -92,6 +92,7 @@ static void initd(void *f_name) {
     NOT_REACHED();
 }
 
+// 현재 프로세스의 자식리스트를 검색하여 해당 tid에 맞는 디스크립터 반환
 struct thread *get_child_with_pid(tid_t tid) {
     struct thread *parent = thread_current();
     struct list_elem *e;
@@ -266,10 +267,8 @@ int process_exec(void *f_name) {
     for (token = strtok_r(f_name, " ", &save_ptr); token != NULL; token = strtok_r(NULL, " ", &save_ptr))
         parse[count++] = token;
 
-    // printf ("'%s'\n", token);
     /* thread 구조체의 intr_frame을 사용할 수 없습니다.
      * 이는 현재 스레드가 재스케줄링되면 실행 정보를 멤버에 저장하기 때문입니다. */
-    // printf ("'%s'\n", token);
     /* We cannot use the intr_frame in the thread structure.
      * This is because when current thread rescheduled,
      * it stores the execution information to the member. */
@@ -343,7 +342,6 @@ void argument_stack(char **parse, int count, struct intr_frame *tf) {
     tf->R.rdi = count;
     tf->R.rsi = tf->rsp + 8;
 
-    // printf("rdi : %d\n",tf->R.rdi);
     // printf("rsi : %p\n", tf->R.rsi);
 }
 
@@ -377,26 +375,14 @@ int process_wait(tid_t child_tid UNUSED) {
     if(child == NULL)
         return -1;
 
-    sema_down(&child -> wait_sema);
-    int exit_status = child -> exit_status;
-    list_remove(&child -> child_elem);
-    sema_up(&child -> free_sema);
+    sema_down(&child -> wait_sema);   // sema down (wait sema)- wait 리스트에 부모 프로세스 추가 (자식 프로세스가 종료 될 때까지)
+    int exit_status = child -> exit_status;   // 자식 프로세스의 종료를 알림 
+    list_remove(&child -> child_elem);  // wait list 에서 remove 
+    sema_up(&child -> free_sema);     // sema_up (free_sema) 
 
-    return exit_status;
+    return exit_status;   // 종료가 되면 그 프로세스가 exit 함수로 전달해준 상태(exit status)를 반환
 
-    // 자식 프로세스가 종료되기를 기다림 
-    // 자식 프로세스의 pid값을 통해 자식 프로세스 디스크립터를 검색
-
-    // if (child_tid != NULL) {  
-        // return exit_status; // 종료 상태를 반환
-    // }
-    // sema down (wait sema)- wait 리스트에 부모 프로세스 추가 (자식 프로세스가 종료 될 때까지)
-    // 자식 프로세스의 종료를 알림 
-    // wait list 에서 remove 
-    // sema_up (exit_sema) 
-    // 종료가 되면 그 프로세스가 exit 함수로 전달해준 상태(exit status)를 반환합니다. 
-    // 비 정상적으로 종료(kill()) 되었을 경우 , 
-    // 커널에 의해서 종료된다면 (e.g exception에 의해서 죽는 경우) -1 리턴
+    // 커널에 의해서 종료된다면 (e.g exception에 의해서 죽는 경우 : OOM , segmentation fault 등 ) -1 리턴
 }
 
 /* 프로세스를 종료합니다. 이 함수는 thread_exit()에 의해 호출됩니다. */
