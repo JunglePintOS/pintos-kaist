@@ -167,7 +167,7 @@ void halt() {
 
 /* 현재 실행중인 스레드를 종료하는 함수 */
 void exit(int status) {
-    // 추후 종료 상태 코드로 변경하는 기능 추가할것.
+    // 추후 종료 시 프로세스이름과 상태를 출력하는 메시지 추가
     printf("syscall exit \n");
     struct thread *t = thread_current();
     thread_exit();
