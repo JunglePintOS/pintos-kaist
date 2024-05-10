@@ -293,8 +293,10 @@ tid_t thread_create(const char *name, int priority, thread_func *function, void 
     /* 스레드 할당. */
     /* Allocate thread. */
     t = palloc_get_page(PAL_ZERO);
-    if (t == NULL)
+    if (t == NULL) {
+        palloc_free_page(t);
         return TID_ERROR;
+    }
 
     /* 스레드 초기화. */
     /* Initialize thread. */
@@ -318,6 +320,7 @@ tid_t thread_create(const char *name, int priority, thread_func *function, void 
     // t->fdt = palloc_get_multiple(PAL_ZERO, 256);
     t->fdt = palloc_get_page(PAL_ZERO); // 4KB 메모리를 할당 (한 페이지의 크기, 파일 테이블에 1개의 페이지를 할당한다.)
     if (t->fdt == NULL) {
+        palloc_free_page(t); 
         return TID_ERROR;
     }
     t->fd_idx = 3;
