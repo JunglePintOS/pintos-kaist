@@ -13,6 +13,7 @@
 #include "threads/thread.h"
 #include "userprog/gdt.h"
 #include "userprog/process.h"
+#include <threads/palloc.h>
 
 
 void syscall_entry(void);
@@ -346,7 +347,7 @@ int exec (const char *cmd_line) {
     char *fn_copy;
 
     off_t size = strlen(cmd_line) + 1;
-    fn_copy = palloc_get_page(0);
+    fn_copy = palloc_get_page(PAL_ZERO);
     if (fn_copy == NULL)
         return -1;
     strlcpy(fn_copy, cmd_line, size);  

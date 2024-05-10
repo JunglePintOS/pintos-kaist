@@ -272,8 +272,13 @@ int process_exec(void *f_name) {
     char *parse[64];
     char *token, *save_ptr;
     int count = 0;
+    // cleanup 에서 메모리 공간도 해제될 가능성이 있어서 실행파일이름을 별도의 메모리 공간에 복사하기 위함
+    char *fn_copy = palloc_get_page(PAL_ASSERT | PAL_ZERO);
+    if (fn_copy == NULL)
+        return -1;
+    strlcpy(fn_copy, f_name, PGSIZE); 
 
-    for (token = strtok_r(f_name, " ", &save_ptr); token != NULL; token = strtok_r(NULL, " ", &save_ptr))
+    for (token = strtok_r(fn_copy, " ", &save_ptr); token != NULL; token = strtok_r(NULL, " ", &save_ptr))
         parse[count++] = token;
 
     /* thread 구조체의 intr_frame을 사용할 수 없습니다.
@@ -292,14 +297,14 @@ int process_exec(void *f_name) {
 
     /* 그리고 이진 파일을 로드합니다. */
     /* And then load the binary */
-    success = load(file_name, &_if);
+    success = load(fn_copy, &_if);
 
     argument_stack(parse, count, &_if);  // 프로그램 이름과 인자가 저장되어 있는 메모리 공간, count: 인자의 개수, rsp: 스택 포인터를 가리키는 주소
     // hex_dump(_if.rsp, _if.rsp, USER_STACK - _if.rsp, true);
 
     /* 로드에 실패하면 종료합니다. */
     /* If load failed, quit. */
-    palloc_free_page(file_name);
+    palloc_free_page(fn_copy);
     if (!success)
         return -1;
 
