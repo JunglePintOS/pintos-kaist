@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <syscall-nr.h>
 #include <user/syscall.h>
-
+#include <string.h>
 #include "filesys/file.h"
 #include "filesys/filesys.h"
 #include "intrinsic.h"
@@ -85,10 +85,8 @@ syscall_init (void) {
 void syscall_handler(struct intr_frame *f UNUSED) {
     // todo: 구현을 여기에 하세요
     // TODO: Your implementation goes here.
-    printf("\nsystem call!\n");
 
     int sys_num = f->R.rax;
-    printf("sys_num : %d\n", sys_num);
 
     switch (sys_num) {
         case SYS_HALT:
@@ -141,7 +139,6 @@ void syscall_handler(struct intr_frame *f UNUSED) {
 
 /* 주소 유효성 검수하는 함수 */
 void check_address(void *addr) {
-    printf("check_address: %p\n", addr);
     struct thread *t = thread_current();
 
     if (addr == NULL || !is_user_vaddr(addr))  // 사용자 영역 주소인지 확인
@@ -164,37 +161,41 @@ struct file *fd_to_fileptr(int fd) {
 }
 
 void halt() {
-    printf("syscall halt\n");
     power_off();
 }
 
 /* 현재 실행중인 스레드를 종료하는 함수 */
 void exit(int status) {
     // 추후 종료 시 프로세스이름과 상태를 출력하는 메시지 추가
-    printf("syscall exit \n");
     struct thread *t = thread_current();
+ 
+    char *original_str = t->name; // 가정: t->name이 "dadsa-dasd o q"
+    char *first_token,*save_ptr;
+
+    first_token = strtok_r(original_str, " ",&save_ptr); // 공백을 구분자로 사용하여 첫 번째 토큰 추출
+
+    if (first_token != NULL) {
+        // 토큰이 성공적으로 추출되었다면, 이를 다루는 로직
+          printf("%s: exit(%d)\n", first_token,t->exit_status);
+    }
+ 
     thread_exit();
 }
 
 bool create(const char *name, unsigned initial_size) {
     check_address(name);
-    printf("syscall create: name %s \n", name);
     return filesys_create(name, initial_size);
 }
 
 bool remove(const char *name) {
     check_address(name);
-    printf("syscall remove\n");
     return filesys_remove(name);
 }
 
 int open(const char *name) {
-    printf("syscall open\n");
     check_address(name);
     struct file *file_obj = filesys_open(name);
-    printf("열린 파일 주소 : %p\n", file_obj);
     if (file_obj == NULL) {
-        printf("file_obj == NULL\n");
         return -1;
     }
 
@@ -209,7 +210,6 @@ int open(const char *name) {
 
 /* console 출력하는 함수 */
 int write(int fd, const void *buffer, unsigned size) {
-    printf("syscall write\n");
     check_address(buffer);
     if (fd == STDOUT_FILENO)
         lock_acquire(&filesys_lock);
@@ -226,7 +226,6 @@ int add_file_to_fdt(struct file *file) {
     struct file **fdt = t->fdt;
     int fd = t->fd_idx;
 
-    printf("fd : %d\n", fd);
     while (t->fdt[fd] != NULL && fd < FDT_COUNT_LIMIT) {
         fd++;
     }
@@ -249,7 +248,6 @@ void delete_file_from_fdt(int fd) {
 
 // fd (첫 번째 인자)로서 열려 있는 파일의 크기가 몇바이트인지 반환하는 함수
 int filesize(int fd) {
-    printf("syscall filesize\n");
     struct file *file = fd_to_fileptr(fd);
 
     // 유효하지 않은 fd
@@ -258,20 +256,16 @@ int filesize(int fd) {
     }
     
     int size = file_length(file); 
-    printf("fd 의 파일의 크기 : %d\n",size);
 
     return size; 
 }
 
 // buffer 안에 fd로 열린 파일로 size 바이트를 읽음
 int read(int fd, void *buffer, unsigned size) {
-    printf("syscall read\n");
     struct file *file = fd_to_fileptr(fd);
-    printf("buffer 주소 : %p\n", buffer);
 
     // 버퍼가 유효한 주소인지 체크
     check_address(buffer);
-    printf("buffer 유효한 주소 입니다 \n");
 
     // fd가 0이면 (stdin) input_getc()를 사용해서 키보드 입력을 받아옴
     if (fd == 0) {
@@ -293,15 +287,11 @@ int read(int fd, void *buffer, unsigned size) {
     off_t read_count = file_read (file, buffer, size);
     lock_release(&filesys_lock);
 
-    printf("fd : %d buffer : %d size %d\n",fd, buffer, size);
-    printf("fd : %d buffer : %s size %d\n",fd, buffer, size);
-
     return read_count;
 }
 
 // fd에서 읽거나 쓸 다음 바이트의 position을 변경해주는 함수
 void seek (int fd, unsigned position) {
-    printf("syscall seek\n");
     struct file *file = fd_to_fileptr(fd);
 
     // 파일 디스크립터의 유효성을 검증
@@ -313,7 +303,6 @@ void seek (int fd, unsigned position) {
 }
 
 unsigned tell (int fd) {
-    printf("syscall tell\n");
     struct file *file = fd_to_fileptr(fd);
 
     if (file == NULL) {
@@ -323,7 +312,6 @@ unsigned tell (int fd) {
 }
 
 void close (int fd) {
-    printf("syscall close\n");
     struct file *file = fd_to_fileptr(fd);
 
     if (file == NULL) {
@@ -349,7 +337,6 @@ int wait (pid_t pid)
 }
 
 int exec (const char *cmd_line) {
-    printf("exec test\n");
     char *fn_copy;
 
     off_t size = strlen(cmd_line) + 1;

@@ -336,7 +336,7 @@ void argument_stack(char **parse, int count, struct intr_frame *tf) {
     tf->rsp = tf->rsp - 8;
     memset(tf->rsp, 0, 8);
 
-    hex_dump(tf->rsp, tf->rsp, USER_STACK - tf->rsp, true);
+    // hex_dump(tf->rsp, tf->rsp, USER_STACK - tf->rsp, true);
 
     // rdi, rsi 값 넣기
     tf->R.rdi = count;
