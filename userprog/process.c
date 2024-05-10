@@ -114,7 +114,8 @@ tid_t process_fork(const char *name, struct intr_frame *if_ UNUSED) {
     /* Clone current thread to new thread.*/
 
     struct thread *curr = thread_current();
-    memcpy(&curr->parent_if, if_, sizeof(struct intr_frame)); // 현재 thread의 parent_if에 if_를 저장
+    struct intr_frame *f = (pg_round_up(rrsp()) - sizeof(struct intr_frame));  // 현재 쓰레드의 if_는 페이지 마지막에 붙어있다.
+    memcpy(&curr->parent_if, f, sizeof(struct intr_frame)); // 현재 thread의 parent_if에 if_를 저장
 
     tid_t tid = thread_create(name, PRI_DEFAULT, __do_fork, curr);
     if(tid == TID_ERROR)
@@ -144,7 +145,7 @@ static bool duplicate_pte(uint64_t *pte, void *va, void *aux) {
     /* 1. TODO: 부모 페이지가 커널 페이지인 경우 즉시 반환합니다. */
     /* 1. TODO: If the parent_page is kernel page, then return immediately. */
     if (is_kernel_vaddr(va))
-        return false;   // 보안상 이유로 커널 페이지는 복사 하지 않음.
+        return true;
     /* 2. 부모의 페이지 맵 레벨 4에서 VA를 해결합니다. */
     /* 2. Resolve VA from the parent's page map level 4. */
     parent_page = pml4_get_page(parent->pml4, va);
@@ -165,7 +166,7 @@ static bool duplicate_pte(uint64_t *pte, void *va, void *aux) {
     /* 4. TODO: Duplicate parent's page to the new page and
      *    TODO: check whether parent's page is writable or not (set WRITABLE
      *    TODO: according to the result). */
-    memcpy(newpage, parent_page, sizeof(parent_page));
+    memcpy(newpage, parent_page, PGSIZE);
     writable = is_writable(pte);
     /* 5. 새 페이지를 주소 VA에 WRITABLE 권한으로 자식의 페이지 테이블에 추가합니다. */
     /* 5. Add new page to child's page table at address VA with WRITABLE
@@ -203,17 +204,23 @@ static void __do_fork(void *aux) {
     /* 2. PT 복제 */
     /* 2. Duplicate PT */
     current->pml4 = pml4_create();
-    if (current->pml4 == NULL)
+    if (current->pml4 == NULL){
+        succ = false;
         goto error;
+    }
 
     process_activate(current);
 #ifdef VM
     supplemental_page_table_init(&current->spt);
-    if (!supplemental_page_table_copy(&current->spt, &parent->spt))
+    if (!supplemental_page_table_copy(&current->spt, &parent->spt)) {
+        succ = false;
         goto error;
+    }
 #else
-    if (!pml4_for_each(parent->pml4, duplicate_pte, parent))
+    if (!pml4_for_each(parent->pml4, duplicate_pte, parent)) {
+        succ = false;
         goto error;
+    }
 #endif
 
     /* TODO: 여기에 코드를 작성합니다.
@@ -224,11 +231,12 @@ static void __do_fork(void *aux) {
      * TODO:       in include/filesys/file.h. Note that parent should not return
      * TODO:       from the fork() until this function successfully duplicates
      * TODO:       the resources of parent.*/
-    // process_init();  // 굳이 초기화할 필요가 없어서 일단 주석
+    process_init();  // 굳이 초기화할 필요가 없어서 일단 주석
 
     // if (parent->fd_idx == FDT_COUNT_LIMIT)
     //     goto error;
     
+    /* 파일 디스크립터 테이블 복제 */
     for (int fd = 0; fd < FDT_COUNT_LIMIT; fd++) {
         struct file *file = parent->fdt[fd];
         if (file == NULL)
@@ -247,8 +255,11 @@ static void __do_fork(void *aux) {
     /* 마지막으로, 새롭게 생성된 프로세스로 전환합니다. */
     /* Finally, switch to the newly created process. */
     if (succ)
+        sema_up(&current->fork_sema);
         do_iret(&if_);
 error:
+    current->exit_status = -1;
+    sema_up(&current->fork_sema);
     thread_exit();
 }
 
