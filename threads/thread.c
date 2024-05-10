@@ -324,9 +324,9 @@ tid_t thread_create(const char *name, int priority, thread_func *function, void 
         return TID_ERROR;
     }
     t->fd_idx = 3;
-    t->fdt[0] = "stdin";
-    t->fdt[1] = "stdout";
-    t->fdt[2] = "stderr";
+    t->fdt[0] = NULL;
+    t->fdt[1] = NULL;
+    t->fdt[2] = NULL;
 
     // 자식 thread가 생성될 동안 부모 thread가 종료되면 안되므로 Lock을 해야함.
     // 따라서 부모 thread는 자식 thread를 알아야 해당 자식 thread로 sema_down을 할 수 있음.
