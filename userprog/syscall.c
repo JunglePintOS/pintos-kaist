@@ -168,7 +168,8 @@ void halt() {
 void exit(int status) {
     // 추후 종료 시 프로세스이름과 상태를 출력하는 메시지 추가
     struct thread *t = thread_current();
- 
+    t->exit_status = status;
+    
     char *original_str = t->name; // 가정: t->name이 "dadsa-dasd o q"
     char *first_token,*save_ptr;
 
@@ -176,7 +177,7 @@ void exit(int status) {
 
     if (first_token != NULL) {
         // 토큰이 성공적으로 추출되었다면, 이를 다루는 로직
-          printf("%s: exit(%d)\n", first_token,t->exit_status);
+          printf("%s: exit(%d)\n", first_token, t->exit_status);
     }
  
     thread_exit();
