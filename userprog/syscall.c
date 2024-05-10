@@ -152,12 +152,13 @@ void check_address(void *addr) {
 /* fd로 file 주소를 반환하는 함수 */
 struct file *fd_to_fileptr(int fd) {
   struct thread *t = thread_current();
-  struct file *file = t->fdt[fd];
 
   // fd 값 검증
-  if (fd < 0 || fd >= FDT_COUNT_LIMIT || file == NULL) {
+  if (fd < 0 || fd >= FDT_COUNT_LIMIT) {
     return NULL; // 유효하지 않은 파일 디스크립터
   }
+  
+  struct file *file = t->fdt[fd];
 
   return file;
 }
