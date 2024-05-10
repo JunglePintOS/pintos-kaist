@@ -99,6 +99,7 @@ void syscall_handler(struct intr_frame *f UNUSED) {
             exit(f->R.rdi);
             break;
         case SYS_FORK:
+            memcpy(&thread_current()->parent_if, f, sizeof(struct intr_frame)); // 현재 thread의 parent_if에 if_를 저장
             f->R.rax = fork(f->R.rdi);
             break;
         case SYS_EXEC:
@@ -324,7 +325,9 @@ void close (int fd) {
 }
 
 pid_t fork (const char *thread_name) {
-    return process_fork(thread_name, NULL);
+    check_address(thread_name);
+    struct thread *t = thread_current();
+    return process_fork(thread_name, &t->parent_if);
 }
 
 int wait (pid_t pid)

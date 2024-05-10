@@ -114,8 +114,6 @@ tid_t process_fork(const char *name, struct intr_frame *if_ UNUSED) {
     /* Clone current thread to new thread.*/
 
     struct thread *curr = thread_current();
-    struct intr_frame *f = (pg_round_up(rrsp()) - sizeof(struct intr_frame));  // 현재 쓰레드의 if_는 페이지 마지막에 붙어있다.
-    memcpy(&curr->parent_if, f, sizeof(struct intr_frame)); // 현재 thread의 parent_if에 if_를 저장
 
     tid_t tid = thread_create(name, PRI_DEFAULT, __do_fork, curr);
     if(tid == TID_ERROR)
