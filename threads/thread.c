@@ -325,10 +325,12 @@ tid_t thread_create(const char *name, int priority, thread_func *function, void 
     t->fdt[1] = "stdout";
     t->fdt[2] = "stderr";
 
-    struct thread *parent = (struct thread *) aux;
-    if (is_thread(parent)) {
-        list_push_back(&parent->child_list, &t->child_elem);
-    }
+    // 자식 thread가 생성될 동안 부모 thread가 종료되면 안되므로 Lock을 해야함.
+    // 따라서 부모 thread는 자식 thread를 알아야 해당 자식 thread로 sema_down을 할 수 있음.
+    // 즉 fork에서만 사용하는 개념이 아니다.
+    struct thread *parent = thread_current();
+    list_push_back(&parent->child_list, &t->child_elem);
+
     /* 준비 큐에 추가. */
     /* Add to run queue. */
     thread_unblock(t);
