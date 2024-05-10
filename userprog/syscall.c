@@ -353,5 +353,9 @@ int exec (const char *cmd_line) {
         return -1;
     strlcpy(fn_copy, cmd_line, size);  
     
-    return process_exec(cmd_line);
+    int result = process_exec(cmd_line);
+    if (result == -1) {
+        exit(-1);
+    }
+    return result;
 }

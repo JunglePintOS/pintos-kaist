@@ -299,14 +299,15 @@ int process_exec(void *f_name) {
     /* And then load the binary */
     success = load(fn_copy, &_if);
 
+    if (!success)
+        return -1;
+        
     argument_stack(parse, count, &_if);  // 프로그램 이름과 인자가 저장되어 있는 메모리 공간, count: 인자의 개수, rsp: 스택 포인터를 가리키는 주소
     // hex_dump(_if.rsp, _if.rsp, USER_STACK - _if.rsp, true);
 
     /* 로드에 실패하면 종료합니다. */
     /* If load failed, quit. */
     palloc_free_page(fn_copy);
-    if (!success)
-        return -1;
 
     /* 전환된 프로세스를 시작합니다. */
     /* Start switched process. */
