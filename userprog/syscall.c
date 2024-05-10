@@ -341,6 +341,7 @@ int wait (pid_t pid)
 }
 
 int exec (const char *cmd_line) {
+    check_address(cmd_line);
     char *fn_copy;
 
     off_t size = strlen(cmd_line) + 1;
