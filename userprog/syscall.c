@@ -155,7 +155,7 @@ struct file *fd_to_fileptr(int fd) {
 
   // fd 값 검증
   if (fd < 0 || fd >= FDT_COUNT_LIMIT) {
-    return NULL; // 유효하지 않은 파일 디스크립터
+    exit(-1); // 유효하지 않은 파일 디스크립터
   }
   
   struct file *file = t->fdt[fd];
