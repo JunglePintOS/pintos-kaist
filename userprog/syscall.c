@@ -215,15 +215,26 @@ int open(const char *name) {
 /* console 출력하는 함수 */
 int write(int fd, const void *buffer, unsigned size) {
     check_address(buffer);
-    if (fd == STDOUT_FILENO) {
-        lock_acquire(&filesys_lock);
-        putbuf(buffer, size);
-        lock_release(&filesys_lock);
+    struct file *file = fd_to_fileptr(fd);
+    int result;
+
+    if (fd == STDIN_FILENO || fd == 2) {
+        return -1;
     }
-    return size;
+    else if (fd == STDOUT_FILENO) {
+        putbuf(buffer, size);
+        result = size;
+    }
+    else { 
+        lock_acquire(&filesys_lock);
+        result = file_write(file,buffer,size);
+        lock_release(&filesys_lock); 
+    }
+
+    return result;
 }
 
-// ### fdt functions
+// ### fdt functions -dsa
 
 // 파일을 현재스레드의 fdt에 추가
 int add_file_to_fdt(struct file *file) {
@@ -272,14 +283,14 @@ int read(int fd, void *buffer, unsigned size) {
     // 버퍼가 유효한 주소인지 체크
     check_address(buffer);
 
-    // fd가 0이면 (stdin) input_getc()를 사용해서 키보드 입력을 받아옴
+    // fd가 0이면 (stdin) input_getc()를 사용해서 키보드 입력을 읽고 버퍼에 저장(?)
     if (fd == 0) {
         input_getc();
     }
 
     // 파일을 읽을 수 없는 케이스의 경우 -1 반환 , (fd값이 1인 경우 stout)
     if (file == NULL || fd == 1) {
-        return -1; // 유효하지 않은 파일 디스크립터
+        exit(-1); // 유효하지 않은 파일 디스크립터
     }
 
     // 구현 필요
