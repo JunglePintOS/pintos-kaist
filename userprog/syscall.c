@@ -218,7 +218,7 @@ int write(int fd, const void *buffer, unsigned size) {
     struct file *file = fd_to_fileptr(fd);
     int result;
 
-    if (fd == STDIN_FILENO || fd == 2) {
+    if (fd == STDIN_FILENO || fd == STDERR_FILENO) {
         return -1;
     }
     else if (fd == STDOUT_FILENO) {
