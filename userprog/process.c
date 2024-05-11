@@ -30,11 +30,13 @@ static bool load(const char *file_name, struct intr_frame *if_);
 static void initd(void *f_name);
 static void __do_fork(void *);
 struct thread *get_child_with_pid(tid_t tid);
+static struct lock filesys_lock;
 
 /* initd와 다른 프로세스를 위한 일반 프로세스 초기화 함수 */
 /* General process initializer for initd and other process. */
 static void process_init(void) {
     struct thread *current = thread_current();
+    lock_init(&filesys_lock);
 }
 
 /* 함수는 주의 깊게 한 번만 호출
@@ -552,6 +554,7 @@ static bool load_segment(struct file *file, off_t ofs, uint8_t *upage, uint32_t 
  * and its initial stack pointer into *RSP.
  * Returns true if successful, false otherwise. */
 static bool load(const char *file_name, struct intr_frame *if_) {
+    process_init();
     struct thread *t = thread_current();
     struct ELF ehdr;
     struct file *file = NULL;
@@ -568,11 +571,17 @@ static bool load(const char *file_name, struct intr_frame *if_) {
 
     /* (프로그램 파일) 실행 파일을 엽니다. */
     /* Open executable file. */
+    
+    lock_acquire(&filesys_lock);
     file = filesys_open(file_name);
     if (file == NULL) {
+        lock_release(&filesys_lock);
         printf("load: %s: open failed\n", file_name);
         goto done;
     }
+    t -> running = file_reopen(file);
+    file_deny_write(t->running);
+    lock_release(&filesys_lock);
 
     /* 실행 가능한 헤더를 읽고 확인합니다. */
     /* Read and verify executable header. */
