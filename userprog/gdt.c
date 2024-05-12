@@ -6,6 +6,14 @@
 #include "threads/vaddr.h"
 #include "intrinsic.h"
 
+/* Global Descriptor Table (GDT)를 초기화합니다.
+ *
+ * GDT는 x86-64 아키텍처에서 사용되는 구조로, 모든 프로세스에서
+ * 사용될 수 있는 세그먼트를 정의하며, 각 세그먼트의 권한에 따릅니다.
+ * 각 GDT 항목은 테이블 내의 바이트 오프셋에 의해 알려져 있는데,
+ * 각 항목은 세그먼트를 식별합니다. 우리의 경우 코드, 데이터, TSS(Task-State Segment)
+ * 디스크립터가 관심 있는 세 가지 유형입니다. 코드와 데이터는 이름 그대로입니다.
+ * TSS는 주로 인터럽트에서 스택 전환에 사용됩니다. */
 /* The Global Descriptor Table (GDT).
  *
  * The GDT, an x86-64 specific structure, defines segments that can
@@ -77,10 +85,14 @@ struct desc_ptr gdt_ds = {
 	.address = (uint64_t) gdt
 };
 
+/* 적절한 GDT를 설정합니다.
+   부트스트랩 로더의 GDT는 사용자 모드 셀렉터나 TSS를 포함하지 않았지만,
+   이제 우리는 둘 다 필요합니다. */
 /* Sets up a proper GDT.  The bootstrap loader's GDT didn't
    include user-mode selectors or a TSS, but we need both now. */
 void
 gdt_init (void) {
+	/* GDT를 초기화합니다. */
 	/* Initialize GDT. */
 	struct segment_descriptor64 *tss_desc =
 		(struct segment_descriptor64 *) &gdt[SEL_TSS >> 3];
@@ -106,6 +118,7 @@ gdt_init (void) {
 	};
 
 	lgdt (&gdt_ds);
+	/* 세그먼트 레지스터 다시 로드 */
 	/* reload segment registers */
 	asm volatile("movw %%ax, %%gs" :: "a" (SEL_UDSEG));
 	asm volatile("movw %%ax, %%fs" :: "a" (0));
@@ -117,6 +130,7 @@ gdt_init (void) {
 			"pushq %%rax\n"
 			"lretq\n"
 			"1:\n" :: "b" (SEL_KCSEG):"cc","memory");
+	/* 로컬 디스크립터 테이블 삭제 */
 	/* Kill the local descriptor table */
 	lldt (0);
 }

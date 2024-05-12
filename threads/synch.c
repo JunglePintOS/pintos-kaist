@@ -70,6 +70,8 @@
 
    - up or "V": increment the value (and wake up one waiting
    thread, if any). */
+struct lock filesys_lock;
+
 void sema_init(struct semaphore *sema, unsigned value) {
     ASSERT(sema != NULL);
 

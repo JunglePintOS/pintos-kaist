@@ -4,6 +4,8 @@
 #include <list.h>
 #include <stdbool.h>
 
+extern struct lock filesys_lock;
+
 /* 세마포어입니다. */
 /* A counting semaphore. */
 struct semaphore {

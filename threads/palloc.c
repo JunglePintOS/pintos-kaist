@@ -249,7 +249,7 @@ palloc_init (void) {
 		  base_mem.start, base_mem.end, base_mem.size / 1024);
 	printf ("\text_mem: 0x%llx ~ 0x%llx (Usable: %'llu kB)\n",
 		  ext_mem.start, ext_mem.end, ext_mem.size / 1024);
-	populate_pools (&base_mem, &ext_mem);
+	populate_pools (&base_mem, &ext_mem); 								// kva영역을 나누어서 커널풀과 유저풀을 분리
 	return ext_mem.end;
 }
 

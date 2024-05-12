@@ -1,10 +1,16 @@
 #ifndef THREADS_THREAD_H
 #define THREADS_THREAD_H
-
+#define USERPROG
 #include <debug.h>
 #include <list.h>
 #include <stdint.h>
+#include "threads/synch.h"
 #include "threads/interrupt.h"
+
+// project2 syscall fdt
+// #define FDT_PAGES 3
+#define FDT_COUNT_LIMIT (1<<9) 
+
 #ifdef VM
 #include "vm/vm.h"
 #endif
@@ -150,6 +156,23 @@ struct thread {
 	/* Shared between thread.c and synch.c. */
 	struct list_elem elem;              /* 리스트 요소. *//* List element. */
 	int64_t wakeup_ticks;
+
+	// project 2: fdt
+	struct file **fdt; 
+	int fd_idx;
+
+	// project 2: system call
+	int exit_status;
+	struct list child_list;
+	struct list_elem child_elem;
+	struct semaphore wait_sema;
+	struct semaphore free_sema;
+	struct file *running;
+	
+	// project 2: fork
+	struct intr_frame parent_if;
+	struct semaphore fork_sema;
+
 
 #ifdef USERPROG
 	/* Owned by userprog/process.c. */

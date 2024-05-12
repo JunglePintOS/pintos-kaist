@@ -293,8 +293,10 @@ tid_t thread_create(const char *name, int priority, thread_func *function, void 
     /* 스레드 할당. */
     /* Allocate thread. */
     t = palloc_get_page(PAL_ZERO);
-    if (t == NULL)
+    if (t == NULL) {
+        palloc_free_page(t);
         return TID_ERROR;
+    }
 
     /* 스레드 초기화. */
     /* Initialize thread. */
@@ -313,6 +315,24 @@ tid_t thread_create(const char *name, int priority, thread_func *function, void 
     t->tf.ss = SEL_KDSEG;
     t->tf.cs = SEL_KCSEG;
     t->tf.eflags = FLAG_IF;
+
+    // for project 2 sys call
+    // t->fdt = palloc_get_multiple(PAL_ZERO, 256);
+    t->fdt = palloc_get_page(PAL_ZERO); // 4KB 메모리를 할당 (한 페이지의 크기, 파일 테이블에 1개의 페이지를 할당한다.)
+    if (t->fdt == NULL) {
+        palloc_free_page(t); 
+        return TID_ERROR;
+    }
+    t->fd_idx = 3;
+    t->fdt[0] = NULL;
+    t->fdt[1] = NULL;
+    t->fdt[2] = NULL;
+
+    // 자식 thread가 생성될 동안 부모 thread가 종료되면 안되므로 Lock을 해야함.
+    // 따라서 부모 thread는 자식 thread를 알아야 해당 자식 thread로 sema_down을 할 수 있음.
+    // 즉 fork에서만 사용하는 개념이 아니다.
+    struct thread *parent = thread_current();
+    list_push_back(&parent->child_list, &t->child_elem);
 
     /* 준비 큐에 추가. */
     /* Add to run queue. */
@@ -402,8 +422,8 @@ void test_max_priority(void) {
     if (list_end(&ready_list) == (highest_elem)) {
         return;
     }
-
-    if (less_priority(&curr->elem, highest_elem, NULL)) {
+    // 인터럽트 컨텍스트가 아니고, 현재 스레드의 우선순위가 준비 리스트의 최고 우선순위 스레드보다 낮다면
+    if (!intr_context() && less_priority(&curr->elem, highest_elem, NULL)) {
         thread_yield();
     }
 }
@@ -603,6 +623,13 @@ static void init_thread(struct thread *t, const char *name, int priority) {
     t->init_priority = priority;
     t->wait_on_lock = NULL;
     list_init (&t->donations);
+
+    // project 2: system call
+    list_init (&t->child_list);
+    sema_init (&t->wait_sema, 0);
+    sema_init (&t->free_sema, 0);
+    sema_init (&t->fork_sema, 0);
+
     t->magic = THREAD_MAGIC;
 }
 
@@ -679,8 +706,9 @@ static void thread_launch(struct thread *th) {
      * Note that, we SHOULD NOT use any stack from here
      * until switching is done. */
     __asm __volatile(
-        /* 사용될 레지스터를 저장합니다. */
+        /* 사용될 레지스터를 저장합니다. */ 
         /* Store registers that will be used. */
+        // 레지스터에 저장된 값을 스택에 밀어넣기
         "push %%rax\n"
         "push %%rbx\n"
         "push %%rcx\n"
