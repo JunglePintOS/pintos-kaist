@@ -363,7 +363,8 @@ int exec (const char *cmd_line) {
         return -1;
     strlcpy(fn_copy, cmd_line, size);  
     
-    int result = process_exec(cmd_line);
+    int result = process_exec(fn_copy);
+    palloc_free_page(fn_copy);
     if (result == -1) {
         exit(-1);
     }
