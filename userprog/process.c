@@ -422,6 +422,14 @@ void process_exit(void) {
     for (int fd = 0; fd < FDT_COUNT_LIMIT; fd++){
         close(fd);
     }
+
+    struct list_elem *child;
+    for (child = list_begin(&thread_current()->child_list); // childs 순회
+         child != list_end(&thread_current()->child_list); child = list_next(child))
+    {
+        struct thread *t = list_entry(child, struct thread, child_elem);
+        sema_up(&t->free_sema);
+    }
     // 메모리 누수 방지
     palloc_free_page(curr->fdt);
     // 실행중에 수정 못하도록
