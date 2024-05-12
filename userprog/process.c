@@ -172,6 +172,7 @@ static bool duplicate_pte(uint64_t *pte, void *va, void *aux) {
     if (!pml4_set_page(current->pml4, va, newpage, writable)) {
         /* 6. TODO: 페이지 삽입에 실패하면 오류 처리를 수행합니다. */
         /* 6. TODO: if fail to insert page, do error handling. */
+        palloc_free_page(newpage);
         return false;
     }
     return true;
