@@ -30,13 +30,11 @@ static bool load(const char *file_name, struct intr_frame *if_);
 static void initd(void *f_name);
 static void __do_fork(void *);
 struct thread *get_child_with_pid(tid_t tid);
-static struct lock filesys_lock;
 
 /* initd와 다른 프로세스를 위한 일반 프로세스 초기화 함수 */
 /* General process initializer for initd and other process. */
 static void process_init(void) {
     struct thread *current = thread_current();
-    lock_init(&filesys_lock);
 }
 
 /* 함수는 주의 깊게 한 번만 호출
