@@ -115,7 +115,7 @@ tid_t process_fork(const char *name, struct intr_frame *if_ UNUSED) {
 
     struct thread *curr = thread_current();
 
-    tid_t tid = thread_create(name, PRI_DEFAULT, __do_fork, curr);
+    tid_t tid = thread_create(name, PRI_DEFAULT, __do_fork, if_);
     if(tid == TID_ERROR)
         return TID_ERROR;
 
@@ -188,11 +188,11 @@ static bool duplicate_pte(uint64_t *pte, void *va, void *aux) {
  *       this function. */
 static void __do_fork(void *aux) {
     struct intr_frame if_;
-    struct thread *parent = (struct thread *)aux;
+    struct thread *parent = (struct thread *) pg_round_down(aux);
     struct thread *current = thread_current();
     /* TODO: 부모 if_를 어떻게 전달할 지 고민합니다. (즉, process_fork()의 if_를) */
     /* TODO: somehow pass the parent_if. (i.e. process_fork()'s if_) */
-    struct intr_frame *parent_if = &parent -> parent_if;
+    struct intr_frame *parent_if = (struct intr_frame *) aux;
     bool succ = true;
 
     /* 1. CPU 컨텍스트를 로컬 스택으로 읽어옵니다. */
