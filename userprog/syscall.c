@@ -79,12 +79,9 @@ syscall_init (void) {
     lock_init(&filesys_lock);
 }
 
-
 /* 주요 시스템 호출 인터페이스 */
 /* The main system call interface */
 void syscall_handler(struct intr_frame *f UNUSED) {
-    // todo: 구현을 여기에 하세요
-    // TODO: Your implementation goes here.
 
     int sys_num = f->R.rax;
 
@@ -99,7 +96,6 @@ void syscall_handler(struct intr_frame *f UNUSED) {
             exit(f->R.rdi);
             break;
         case SYS_FORK:
-            memcpy(&thread_current()->parent_if, f, sizeof(struct intr_frame)); // 현재 thread의 parent_if에 if_를 저장
             f->R.rax = fork(f->R.rdi);
             break;
         case SYS_EXEC:
@@ -339,8 +335,8 @@ void close (int fd) {
 
 pid_t fork (const char *thread_name) {
     check_address(thread_name);
-    struct thread *t = thread_current();
-    return process_fork(thread_name, &t->parent_if);
+    struct intr_frame *if_ = pg_round_up(&thread_name) - sizeof(struct intr_frame);
+    return process_fork(thread_name, if_);
 }
 
 int wait (pid_t pid)

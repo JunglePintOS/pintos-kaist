@@ -170,7 +170,6 @@ struct thread {
 	struct file *running;
 	
 	// project 2: fork
-	struct intr_frame parent_if;
 	struct semaphore fork_sema;
 
 
